@@ -2,6 +2,8 @@
 
 这是原 Flask + SQLite 本地项目的云端兼容版本。网页界面和 API 路径保持不变，后端运行在 Cloudflare Workers，法规数据使用 D1 数据库持久保存。
 
+当前公开版本：`v0.1`
+
 ## 已实现接口
 
 - `GET /api/regulations/check-update`

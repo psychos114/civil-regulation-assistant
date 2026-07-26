@@ -7,6 +7,7 @@ const root = new URL("../", import.meta.url);
 test("build includes the regulation assistant frontend", async () => {
   const html = await readFile(new URL("dist/client/index.html", root), "utf8");
   assert.match(html, /土木工程智能规范助手/);
+  assert.match(html, /版本 v0\.1/);
   assert.match(html, /const API_BASE[\s\S]*['"]\/api['"]/);
   assert.match(html, /regulations\/check-update/);
   assert.match(html, /regulations\/download/);
