@@ -1,0 +1,28 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local databases and test output
+regulations.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Temporary Cloudflare tunnel files
+tools/
+public_tunnel*.log
+PUBLIC_URL.txt
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
