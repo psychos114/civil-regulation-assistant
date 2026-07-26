@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>土木工程智能规范助手</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'industrial-blue': '#165DFF',
+                        'industrial-dark': '#1F2937',
+                        'industrial-light': '#F3F4F6',
+                        'safe-blue': '#DBEAFE',
+                        'safe-gray': '#F3F4F6',
+                        'doc-yellow': '#FEF3C7',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* 输入框自动高度 */
+        textarea {
+            resize: none;
+            overflow: hidden;
+        }
+
+        /* 打字机效果 */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #9CA3AF;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* 进度条动画 */
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- 顶部常驻横幅 -->
+    <div class="bg-industrial-blue text-white px-4 py-2 text-sm flex items-center justify-center gap-2 sticky top-0 z-50 shadow-md">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>云端法规知识库，演示内容请以权威发布来源为准</span>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- 左侧侧边栏 (260px) -->
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 hidden md:flex">
+            <!-- 标题区域 -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center gap-2 mb-1">
+                    <i class="fa-solid fa-helmet-safety text-industrial-blue text-xl"></i>
+                    <h1 class="text-lg font-bold text-gray-900">土木工程智能规范助手</h1>
+                </div>
+                <div class="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span>在线云端模式</span>
+                </div>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="p-3 space-y-1">
+                <button id="nav-qa" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-industrial-blue text-white font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>智能问答</span>
+                </button>
+                <button id="nav-kb" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                    <i class="fa-solid fa-database"></i>
+                    <span>知识库管理</span>
+                </button>
+                <button id="nav-template" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                    <i class="fa-solid fa-file-template"></i>
+                    <span>快捷模板</span>
+                </button>
+                <button id="nav-settings" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>系统设置</span>
+                </button>
+            </nav>
+
+            <!-- 快捷提问按钮组 -->
+            <div class="p-3 border-t border-gray-200 flex-1">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">快捷提问</h3>
+                <div class="space-y-2">
+                    <button class="quick-query-btn w-full text-left px-3 py-2 rounded-lg bg-gray-50 text-gray-700 text-sm hover:bg-safe-blue hover:text-industrial-blue transition-colors border border-transparent hover:border-industrial-blue">
+                        <i class="fa-solid fa-person-arrow-up-from-line mr-2"></i>高空作业安全规范
+                    </button>
+                    <button class="quick-query-btn w-full text-left px-3 py-2 rounded-lg bg-gray-50 text-gray-700 text-sm hover:bg-safe-blue hover:text-industrial-blue transition-colors border border-transparent hover:border-industrial-blue">
+                        <i class="fa-solid fa-columns mr-2"></i>混凝土梁柱验收
+                    </button>
+                    <button class="quick-query-btn w-full text-left px-3 py-2 rounded-lg bg-gray-50 text-gray-700 text-sm hover:bg-safe-blue hover:text-industrial-blue transition-colors border border-transparent hover:border-industrial-blue">
+                        <i class="fa-solid fa-fire-extinguisher mr-2"></i>园区消防巡检
+                    </button>
+                    <button class="quick-query-btn w-full text-left px-3 py-2 rounded-lg bg-gray-50 text-gray-700 text-sm hover:bg-safe-blue hover:text-industrial-blue transition-colors border border-transparent hover:border-industrial-blue">
+                        <i class="fa-solid fa-file-contract mr-2"></i>政府采购招标流程
+                    </button>
+                    <button class="quick-query-btn w-full text-left px-3 py-2 rounded-lg bg-gray-50 text-gray-700 text-sm hover:bg-safe-blue hover:text-industrial-blue transition-colors border border-transparent hover:border-industrial-blue">
+                        <i class="fa-solid fa-ambulance mr-2"></i>工地应急处置预案
+                    </button>
+                </div>
+            </div>
+
+            <!-- 底部版本信息 -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50">
+                <div class="text-xs text-gray-500">
+                    <div class="flex items-center gap-1 mb-1">
+                        <i class="fa-solid fa-info-circle"></i>
+                        <span>版本 v1.0.0</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-green-600">
+                        <i class="fa-solid fa-wifi-slash"></i>
+                        <span>云端服务运行中</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中间主区域 -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-white">
+
+            <!-- 智能问答页面 -->
+            <div id="page-qa" class="flex-1 flex flex-col overflow-hidden">
+                <!-- Tab切换栏 -->
+                <div class="flex border-b border-gray-200">
+                    <button id="tab-qa" class="flex-1 py-3 px-4 text-sm font-medium text-industrial-blue border-b-2 border-industrial-blue bg-blue-50">
+                        <i class="fa-solid fa-robot mr-2"></i>智能问答
+                    </button>
+                    <button id="tab-doc" class="flex-1 py-3 px-4 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 hover:bg-gray-50">
+                        <i class="fa-solid fa-file-word mr-2"></i>文档自动生成
+                    </button>
+                </div>
+
+                <!-- 对话内容区域 -->
+                <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <!-- 欢迎消息 -->
+                    <div class="flex gap-3">
+                        <div class="w-10 h-10 rounded-full bg-industrial-blue flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-robot text-white"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-gray-900">智能规范助手</span>
+                                <span class="text-xs text-gray-500">刚刚</span>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                <p class="text-gray-700">您好！我是土木工程智能规范助手，专门为您解答建筑法规、安全规范、工程验收等问题。</p>
+                                <p class="text-gray-700 mt-2">您可以：</p>
+                                <ul class="text-gray-600 text-sm mt-1 list-disc list-inside">
+                                    <li>直接输入您的问题</li>
+                                    <li>点击左侧快捷模板快速提问</li>
+                                    <li>支持粤语、闽南语提问</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部输入栏 -->
+                <div class="p-4 border-t border-gray-200 bg-white">
+                    <div class="flex gap-3">
+                        <div class="flex-1 relative">
+                            <textarea id="chat-input" rows="2" placeholder="输入工程/安全/招标问题，支持粤语、闽南语提问" class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-industrial-blue focus:border-transparent text-sm resize-none"></textarea>
+                            <button class="absolute right-3 bottom-3 text-gray-400 hover:text-industrial-blue" onclick="toggleVoiceInput()">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-4 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors" title="导出问答">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                            <button class="px-4 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors" title="生成整改报告">
+                                <i class="fa-solid fa-file-export"></i>
+                            </button>
+                            <button id="send-btn" class="px-6 py-3 bg-industrial-blue text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+                                <span>发送</span>
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 知识库管理页面 -->
+            <div id="page-kb" class="flex-1 flex flex-col overflow-hidden hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-database text-industrial-blue"></i>
+                        知识库管理
+                    </h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <i class="fa-solid fa-book text-industrial-blue text-xl"></i>
+                                </div>
+                                <div>
+                                    <div id="kb-regulation-count" class="text-2xl font-bold text-gray-900">--</div>
+                                    <div class="text-xs text-gray-500">规范文档</div>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-600">包含建筑法规、安全规范、验收标准等</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                                    <i class="fa-solid fa-file-check text-green-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <div id="kb-indexed-count" class="text-2xl font-bold text-gray-900">--</div>
+                                    <div class="text-xs text-gray-500">已索引文档</div>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-600">已完成语义索引，可快速检索</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                                    <i class="fa-solid fa-clock text-amber-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <div id="kb-last-updated" class="text-lg font-bold text-gray-900">--</div>
+                                    <div class="text-xs text-gray-500">最近更新</div>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-600">知识库内容最近更新时间</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 class="font-semibold text-gray-900">行业规范列表</h3>
+                                <div id="kb-load-status" class="text-xs text-gray-500 mt-1">进入本页后自动读取后端数据库</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input id="kb-search-input" type="search" placeholder="搜索名称、编号或内容"
+                                    class="w-52 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-industrial-blue focus:border-transparent">
+                                <button id="kb-search-btn" class="px-3 py-1.5 bg-industrial-blue text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fa-solid fa-search mr-1"></i>搜索
+                                </button>
+                                <button id="kb-refresh-btn" title="刷新规范列表"
+                                    class="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                                    <i class="fa-solid fa-refresh"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="kb-document-list" class="divide-y divide-gray-100">
+                            <div class="p-8 text-center text-gray-400">
+                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                                <div class="text-sm">等待加载规范数据……</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷模板页面 -->
+            <div id="page-template" class="flex-1 flex flex-col overflow-hidden hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-file-template text-industrial-blue"></i>
+                        快捷模板
+                    </h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-person-arrow-up-from-line text-industrial-blue"></i>
+                                <span class="font-medium text-gray-900">高空作业安全规范查询</span>
+                            </div>
+                            <p class="text-sm text-gray-500">快速查询高空作业相关安全规范要求</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-columns text-industrial-blue"></i>
+                                <span class="font-medium text-gray-900">混凝土结构验收标准</span>
+                            </div>
+                            <p class="text-sm text-gray-500">查询混凝土梁柱验收相关规范</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-fire-extinguisher text-industrial-blue"></i>
+                                <span class="font-medium text-gray-900">消防巡检 Checklist</span>
+                            </div>
+                            <p class="text-sm text-gray-500">园区消防巡检标准检查项</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-file-contract text-industrial-blue"></i>
+                                <span class="font-medium text-gray-900">招标流程模板</span>
+                            </div>
+                            <p class="text-sm text-gray-500">政府采购招标流程查询</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-ambulance text-industrial-blue"></i>
+                                <span class="font-medium text-gray-900">应急预案查询</span>
+                            </div>
+                            <p class="text-sm text-gray-500">工地应急处置预案规范</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:border-industrial-blue transition-colors cursor-pointer">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-plus text-gray-400"></i>
+                                <span class="font-medium text-gray-900">新建模板</span>
+                            </div>
+                            <p class="text-sm text-gray-500">创建自定义快捷提问模板</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统设置页面 -->
+            <div id="page-settings" class="flex-1 flex flex-col overflow-hidden hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-gear text-industrial-blue"></i>
+                        系统设置
+                    </h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4">
+                    <!-- 法规库更新（新增） -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                                <i class="fa-solid fa-download text-industrial-blue"></i>
+                                法规库更新
+                            </h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">当前法规库版本</div>
+                                    <div class="text-sm text-gray-500">包含国家建筑法规、行业标准等</div>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900 bg-gray-100 px-3 py-1 rounded">V2026.07</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">上次更新时间</div>
+                                    <div class="text-sm text-gray-500">最近一次法规数据同步时间</div>
+                                </div>
+                                <span id="settings-last-updated" class="text-sm text-gray-600">--</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">法规文档数量</div>
+                                    <div class="text-sm text-gray-500">云端已存储的规范文档总数</div>
+                                </div>
+                                <span id="settings-regulation-count" class="text-sm font-medium text-industrial-blue">-- 份</span>
+                            </div>
+
+                            <!-- 更新按钮和状态 -->
+                            <div id="update-section">
+                                <div class="flex items-center justify-between">
+                                    <button id="check-update-btn" class="px-4 py-2 bg-industrial-blue text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-refresh mr-2"></i>检查更新
+                                    </button>
+                                    <div id="update-status" class="text-sm text-gray-500">点击检查是否有新法规发布</div>
+                                </div>
+                            </div>
+
+                            <!-- 更新进度（默认隐藏） -->
+                            <div id="update-progress" class="hidden">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm text-gray-600">正在下载最新法规数据...</span>
+                                    <span id="progress-text" class="text-sm font-medium text-industrial-blue">0%</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="progress-bar" class="h-full bg-industrial-blue progress-bar" style="width: 0%"></div>
+                                </div>
+                                <div id="update-messages" class="mt-2 text-xs text-gray-500 space-y-1">
+                                    <!-- 更新消息会动态添加到这里 -->
+                                </div>
+                            </div>
+
+                            <!-- 更新完成（默认隐藏） -->
+                            <div id="update-complete" class="hidden p-3 bg-green-50 rounded-lg border border-green-200">
+                                <div class="flex items-center gap-2 text-green-700">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    <span class="font-medium">法规库更新完成！</span>
+                                </div>
+                                <div class="text-sm text-green-600 mt-1" id="update-result">已更新 3 份最新规范文档</div>
+                            </div>
+
+                            <!-- 更新日志 -->
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <div class="text-sm font-medium text-gray-900 mb-2">最近更新内容</div>
+                                <div class="text-xs text-gray-500 space-y-1">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-green-600">●</span>
+                                        <span>新增：GB 55030-2024 建筑与市政工程施工质量控制通用规范（2024年实施）</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-green-600">●</span>
+                                        <span>更新：JGJ 59-2011 建筑施工安全检查标准（修订版）</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-green-600">●</span>
+                                        <span>更新：中华人民共和国安全生产法（2024年修正）</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 基本设置 -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                                <i class="fa-solid fa-user-cog text-industrial-blue"></i>
+                                基本设置
+                            </h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">界面语言</div>
+                                    <div class="text-sm text-gray-500">设置系统显示语言</div>
+                                </div>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-industrial-blue">
+                                    <option>简体中文</option>
+                                    <option>繁体中文</option>
+                                    <option>English</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">主题模式</div>
+                                    <div class="text-sm text-gray-500">选择界面显示主题</div>
+                                </div>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-industrial-blue">
+                                    <option>浅色模式</option>
+                                    <option>深色模式</option>
+                                    <option>跟随系统</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">字体大小</div>
+                                    <div class="text-sm text-gray-500">调整界面文字大小</div>
+                                </div>
+                                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-industrial-blue">
+                                    <option>默认</option>
+                                    <option>小号</option>
+                                    <option>大号</option>
+                                    <option>特大号</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 知识库设置 -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                                <i class="fa-solid fa-database text-industrial-blue"></i>
+                                知识库设置
+                            </h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">知识库存储路径</div>
+                                    <div class="text-sm text-gray-500">云端知识库存储</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded">持久化法规数据库</span>
+                                    <button class="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                                        <i class="fa-solid fa-folder-open mr-1"></i>浏览
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">自动更新索引</div>
+                                    <div class="text-sm text-gray-500">当知识库文件变化时自动重建索引</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-industrial-blue"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">最大文档数量</div>
+                                    <div class="text-sm text-gray-500">知识库允许存储的最大文档数</div>
+                                </div>
+                                <input type="number" value="1000" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 安全设置 -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                                <i class="fa-solid fa-shield text-industrial-blue"></i>
+                                安全设置
+                            </h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">云端持久化存储</div>
+                                    <div class="text-sm text-gray-500">法规数据保存在专用云端数据库中</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-industrial-blue"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">访问密码</div>
+                                    <div class="text-sm text-gray-500">设置启动时的访问密码</div>
+                                </div>
+                                <button class="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                                    <i class="fa-solid fa-key mr-1"></i>设置密码
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium text-gray-900">数据清理提醒</div>
+                                    <div class="text-sm text-gray-500">定期提醒清理过期文档和缓存</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-industrial-blue"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 关于 -->
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+                                <i class="fa-solid fa-info-circle text-industrial-blue"></i>
+                                关于
+                            </h3>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500">软件名称</span>
+                                <span class="font-medium text-gray-900">土木工程智能规范助手</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500">版本号</span>
+                                <span class="font-medium text-gray-900">v1.0.0</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500">更新日期</span>
+                                <span class="font-medium text-gray-900">2026-07-22</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-500">运行模式</span>
+                                <span class="font-medium text-green-600 flex items-center gap-1">
+                                    <i class="fa-solid fa-check-circle"></i>在线云端模式
+                                </span>
+                            </div>
+                            <div class="pt-2 border-t border-gray-100">
+                                <p class="text-sm text-gray-500">本软件为土木工程行业智能规范查询助手。当前法规内容为功能演示摘要，正式使用时请接入合法、权威的数据源，并以官方公布文本为准。</p>
+                                <p class="text-sm text-gray-500 mt-1">支持联网更新法规库，确保您获取最新的国家建筑法规和行业标准。</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                                    <i class="fa-solid fa-question-circle mr-1"></i>帮助文档
+                                </button>
+                                <button class="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                                    <i class="fa-solid fa-bug mr-1"></i>反馈问题
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧悬浮面板 -->
+        <aside id="right-panel" class="w-72 bg-white border-l border-gray-200 flex flex-col flex-shrink-0 hidden lg:flex">
+            <!-- 面板头部 -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-lines text-industrial-blue"></i>
+                    <span>匹配文档</span>
+                </h2>
+                <button id="close-panel-btn" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- 文档列表 -->
+            <div id="doc-list" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <div class="text-center text-gray-400 py-8">
+                    <i class="fa-solid fa-search text-4xl mb-2"></i>
+                    <p class="text-sm">暂无匹配文档</p>
+                    <p class="text-xs mt-1">请先提问获取相关规范</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 移动端右侧面板开关 -->
+        <button id="toggle-panel-btn" class="lg:hidden fixed right-4 top-20 z-40 w-10 h-10 bg-industrial-blue text-white rounded-full shadow-lg flex items-center justify-center">
+            <i class="fa-solid fa-list"></i>
+        </button>
+    </div>
+
+    <!-- 移动端侧边栏开关 -->
+    <button id="toggle-sidebar-btn" class="md:hidden fixed left-4 top-20 z-40 w-10 h-10 bg-white text-gray-700 rounded-full shadow-lg flex items-center justify-center border border-gray-200">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- 侧边栏遮罩（移动端） -->
+    <div id="sidebar-overlay" class="md:hidden fixed inset-0 bg-black/50 z-30 hidden"></div>
+
+    <script>
+        // === 模拟数据 ===
+        const mockQAData = {
+            "高空作业安全规范": {
+                question: "高空作业安全规范",
+                plainAnswer: "简单来说，高空作业就是在离地面2米以上的地方干活。核心要求有三点：第一，必须系好安全带，而且要挂在牢固的地方；第二，作业区域下面必须设警戒线，防止东西掉下来砸到人；第三，大风（六级以上）、大雨、大雾天不能高空作业。要是违反这些规定，出了事可是要负责任的。",
+                sourceAnswer: "1. 凡在坠落高度基准面2米及以上有可能坠落的高处进行作业，均应视为高处作业（JGJ 80-2016 第2.1.1条）\n\n2. 高处作业人员必须正确佩戴安全带，安全带应高挂低用，挂点应安全可靠（JGJ 80-2016 第3.2.1条）\n\n3. 坠落高度超过15米的高处作业，必须设置双层防护棚（JGJ 80-2016 第4.2.3条）\n\n4. 六级及以上大风、大雨、大雪、浓雾等恶劣天气，不得进行露天高处作业（JGJ 80-2016 第4.3.2条）",
+                sources: ["JGJ 80-2016 建筑施工高处作业安全技术规范", "GB 50194-2014 建设工程施工现场消防安全技术规范"]
+            },
+            "混凝土梁柱验收": {
+                question: "混凝土梁柱验收",
+                plainAnswer: "混凝土梁柱建好后不能马上用，得验收合格才行。首先看外观，不能有蜂窝、麻面这些毛病；然后要测强度，得达到设计要求的强度等级；钢筋的数量和位置也得检查，不能少放或者放错位置。最重要的是要做试块试验，证明混凝土真的达标了。",
+                sourceAnswer: "1. 现浇结构的外观质量不应有严重缺陷。对已经出现的严重缺陷，应由施工单位提出技术处理方案，并经监理（建设）单位认可后进行处理（GB 50204-2015 第8.2.1条）\n\n2. 混凝土结构实体强度应符合设计要求。混凝土强度应按现行国家标准《混凝土强度检验评定标准》GB/T 50107的规定检验评定（GB 50204-2015 第10.1.1条）\n\n3. 钢筋的品种、级别、规格和数量必须符合设计要求（GB 50204-2015 第5.1.1条）\n\n4. 梁、柱的受力钢筋保护层厚度偏差不应超过±5mm（GB 50204-2015 附录E）",
+                sources: ["GB 50204-2015 混凝土结构工程施工质量验收规范", "GB/T 50107-2010 混凝土强度检验评定标准"]
+            },
+            "园区消防巡检": {
+                question: "园区消防巡检",
+                plainAnswer: "消防巡检主要是查三样东西：灭火器能不能用、消防通道通不通、电气设备有没有隐患。灭火器要定期检查压力，过期了要换；消防通道不能堆东西，必须随时畅通；电线不能乱拉乱接，配电箱要保持干燥。发现问题要马上记录整改，不能拖延。",
+                sourceAnswer: "1. 消防安全重点单位应当进行每日防火巡查，并确定巡查的人员、内容、部位和频次（GB 25506-2010 第5.2.1条）\n\n2. 消防设施、器材应当定期组织检验、维修，确保完好有效（《中华人民共和国消防法》第二十八条）\n\n3. 禁止在疏散通道、安全出口、消防车通道上设置障碍物（GB 25506-2010 第6.1.1条）\n\n4. 电气线路敷设、电气设备安装和维修应当符合消防技术标准和管理规定（GB 25506-2010 第7.1.1条）",
+                sources: ["GB 25506-2010 消防控制室通用技术要求", "中华人民共和国消防法", "GB 50116-2013 火灾自动报警系统设计规范"]
+            },
+            "政府采购招标流程": {
+                question: "政府采购招标流程",
+                plainAnswer: "政府采购招标有一套严格的流程，不能随便来。首先要编招标文件，明确要求和评标办法；然后发布公告让大家报名；接着开标、评标，选出中标单位；最后公示结果，签合同。整个过程要公开透明，防止暗箱操作。",
+                sourceAnswer: "1. 政府采购工程以及与工程建设有关的货物、服务，采用招标方式采购的，适用《中华人民共和国招标投标法》及其实施条例（《中华人民共和国政府采购法》第二十七条）\n\n2. 招标人应当按照资格预审公告、招标公告或者投标邀请书规定的时间、地点发售招标文件（《招标投标法实施条例》第十六条）\n\n3. 评标委员会成员应当依照招标投标法和本条例的规定，按照招标文件规定的评标标准和方法，客观、公正地对投标文件提出评审意见（《招标投标法实施条例》第四十九条）\n\n4. 依法必须进行招标的项目，招标人应当自收到评标报告之日起3日内公示中标候选人，公示期不得少于3日（《招标投标法实施条例》第五十四条）",
+                sources: ["中华人民共和国政府采购法", "中华人民共和国招标投标法实施条例", "政府采购货物和服务招标投标管理办法"]
+            },
+            "工地应急处置预案": {
+                question: "工地应急处置预案",
+                plainAnswer: "工地出事了不能乱，要有应急预案。首先要成立应急小组，明确谁负责指挥、谁负责救援、谁负责上报；然后要准备好应急物资，比如急救箱、灭火器、对讲机；还要定期演练，让大家知道出事了该往哪跑、该怎么做。遇到紧急情况，先救人，再救物。",
+                sourceAnswer: "1. 施工单位应当根据建设工程施工的特点、范围，对施工现场易发生重大事故的部位、环节进行监控，制定施工现场生产安全事故应急救援预案（《建设工程安全生产管理条例》第四十九条）\n\n2. 应急救援预案应当包括应急救援组织机构、人员、职责、应急救援程序、应急救援物资和设备等内容（JGJ/T 278-2012 第3.2条）\n\n3. 施工单位应当定期组织应急救援演练（《建设工程安全生产管理条例》第四十九条）\n\n4. 发生生产安全事故后，施工单位应当采取措施防止事故扩大，保护事故现场（《建设工程安全生产管理条例》第五十一条）",
+                sources: ["建设工程安全生产管理条例", "JGJ/T 278-2012 建筑施工安全生产标准化考评暂行办法", "GB/T 29639-2020 生产经营单位生产安全事故应急预案编制导则"]
+            }
+        };
+
+        // 默认回答
+        const defaultQA = {
+            question: "",
+            plainAnswer: "根据您的问题，我为您整理了相关规范要点。简单来说，土木工程施工必须严格遵守国家和行业的相关标准，确保施工安全和工程质量。",
+            sourceAnswer: "1. 建设工程必须严格按照国家现行有关标准、规范进行施工（GB 50300-2013 第1.0.3条）\n\n2. 施工单位应当建立健全安全生产责任制度（《建设工程安全生产管理条例》第二十条）",
+            sources: ["GB 50300-2013 建筑工程施工质量验收统一标准", "建设工程安全生产管理条例"]
+        };
+
+        // === DOM引用 ===
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const quickQueryBtns = document.querySelectorAll('.quick-query-btn');
+        const tabQaBtn = document.getElementById('tab-qa');
+        const tabDocBtn = document.getElementById('tab-doc');
+        const docList = document.getElementById('doc-list');
+        const rightPanel = document.getElementById('right-panel');
+        const closePanelBtn = document.getElementById('close-panel-btn');
+        const togglePanelBtn = document.getElementById('toggle-panel-btn');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.querySelector('aside:first-child');
+
+        // 导航按钮
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const pages = {
+            qa: document.getElementById('page-qa'),
+            kb: document.getElementById('page-kb'),
+            template: document.getElementById('page-template'),
+            settings: document.getElementById('page-settings')
+        };
+
+        // 法规更新相关
+        const checkUpdateBtn = document.getElementById('check-update-btn');
+        const updateSection = document.getElementById('update-section');
+        const updateProgress = document.getElementById('update-progress');
+        const updateComplete = document.getElementById('update-complete');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const updateMessages = document.getElementById('update-messages');
+        const updateResult = document.getElementById('update-result');
+        const updateStatus = document.getElementById('update-status');
+
+        // 知识库相关
+        const kbRegulationCount = document.getElementById('kb-regulation-count');
+        const kbIndexedCount = document.getElementById('kb-indexed-count');
+        const kbLastUpdated = document.getElementById('kb-last-updated');
+        const kbLoadStatus = document.getElementById('kb-load-status');
+        const kbDocumentList = document.getElementById('kb-document-list');
+        const kbSearchInput = document.getElementById('kb-search-input');
+        const kbSearchBtn = document.getElementById('kb-search-btn');
+        const kbRefreshBtn = document.getElementById('kb-refresh-btn');
+        const settingsRegulationCount = document.getElementById('settings-regulation-count');
+        const settingsLastUpdated = document.getElementById('settings-last-updated');
+
+        // 当前状态
+        let currentMode = 'qa';
+        let currentPage = 'qa';
+
+        // === 初始化 ===
+        function init() {
+            // 发送消息
+            sendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // 快捷提问
+            quickQueryBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    chatInput.value = btn.textContent.trim();
+                    adjustTextareaHeight(chatInput);
+                    sidebar.classList.add('hidden');
+                    sidebarOverlay.classList.add('hidden');
+                    chatInput.focus();
+                });
+            });
+
+            // Tab切换
+            tabQaBtn.addEventListener('click', () => switchTab('qa'));
+            tabDocBtn.addEventListener('click', () => switchTab('doc'));
+
+            // 面板控制
+            closePanelBtn.addEventListener('click', () => rightPanel.classList.add('hidden'));
+            togglePanelBtn.addEventListener('click', () => {
+                rightPanel.classList.toggle('hidden');
+                rightPanel.classList.toggle('fixed');
+                rightPanel.classList.toggle('inset-0');
+                rightPanel.classList.toggle('z-50');
+            });
+
+            // 移动端侧边栏
+            toggleSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.remove('hidden');
+                sidebarOverlay.classList.remove('hidden');
+            });
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('hidden');
+                sidebarOverlay.classList.add('hidden');
+            });
+
+            // 输入框自适应
+            chatInput.addEventListener('input', () => adjustTextareaHeight(chatInput));
+
+            // 导航切换
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pageId = btn.id.replace('nav-', '');
+                    switchPage(pageId);
+                    sidebar.classList.add('hidden');
+                    sidebarOverlay.classList.add('hidden');
+                });
+            });
+
+            // 法规更新检查
+            checkUpdateBtn.addEventListener('click', checkForUpdates);
+
+            // 知识库搜索和刷新
+            kbSearchBtn.addEventListener('click', loadKnowledgeBase);
+            kbRefreshBtn.addEventListener('click', loadKnowledgeBase);
+            kbSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loadKnowledgeBase();
+                }
+            });
+        }
+
+        // === 法规库更新功能 ===
+        // 由 8000 端口单独运行前端时访问同一电脑的 5000 端口；
+        // 由 Flask 或 HTTPS 隧道提供页面时使用同源 /api。
+        const API_BASE = window.location.port === '8000'
+            ? `http://${window.location.hostname}:5000/api`
+            : '/api';
+
+async function checkForUpdates() {
+    checkUpdateBtn.disabled = true;
+    updateSection.classList.add('hidden');
+    updateComplete.classList.add('hidden');
+    updateProgress.classList.remove('hidden');
+    updateMessages.innerHTML = '';
+
+    function showProgress(percent, message) {
+        progressBar.style.width = percent + '%';
+        progressText.textContent = percent + '%';
+
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        updateMessages.appendChild(messageElement);
+    }
+
+    try {
+        showProgress(10, '正在连接法规服务……');
+
+        const checkResponse = await fetch(
+            `${API_BASE}/regulations/check-update`
+        );
+        const checkResult = await checkResponse.json();
+
+        if (!checkResponse.ok || !checkResult.success) {
+            throw new Error(checkResult.message || '检查更新失败');
+        }
+
+        const updateData = checkResult.data;
+
+        if (!updateData.has_update) {
+            showProgress(100, '当前法规库已是最新版本。');
+
+            updateProgress.classList.add('hidden');
+            updateComplete.classList.remove('hidden');
+            updateResult.textContent = '当前法规库已是最新版本，无需更新。';
+            updateStatus.textContent = '当前已是最新版本';
+            return;
+        }
+
+        showProgress(
+            35,
+            `发现 ${updateData.update_count} 份法规更新。`
+        );
+
+        updateData.updates.forEach(item => {
+            const action = item.action === 'new' ? '新增' : '更新';
+            showProgress(
+                45,
+                `${action}：${item.code} ${item.title}`
+            );
+        });
+
+        showProgress(65, '正在下载并写入云端数据库……');
+
+        const downloadResponse = await fetch(
+            `${API_BASE}/regulations/download`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    update_ids: updateData.updates.map(item => item.id)
+                })
+            }
+        );
+
+        const downloadResult = await downloadResponse.json();
+
+        if (!downloadResponse.ok || !downloadResult.success) {
+            throw new Error(downloadResult.message || '下载更新失败');
+        }
+
+        showProgress(100, '法规更新完成。');
+
+        updateProgress.classList.add('hidden');
+        updateComplete.classList.remove('hidden');
+        updateResult.textContent =
+            `已更新 ${downloadResult.data.downloaded_count} 份法规，` +
+            `新增 ${downloadResult.data.created_count} 份，` +
+            `更新 ${downloadResult.data.updated_count} 份。`;
+
+        updateStatus.textContent = '法规库更新完成';
+        await loadKnowledgeBase();
+    } catch (error) {
+        updateProgress.classList.add('hidden');
+        updateComplete.classList.add('hidden');
+        updateStatus.textContent = `更新失败：${error.message}`;
+        console.error(error);
+    } finally {
+        checkUpdateBtn.disabled = false;
+        updateSection.classList.remove('hidden');
+    }
+        }
+
+        // === 知识库数据 ===
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            })[character]);
+        }
+
+        function getLatestUpdatedAt(items) {
+            return items.reduce((latest, item) => {
+                if (!item.updated_at) return latest;
+                return !latest || item.updated_at > latest ? item.updated_at : latest;
+            }, '');
+        }
+
+        async function loadKnowledgeBase() {
+            const keyword = kbSearchInput.value.trim();
+            const query = keyword ? `&q=${encodeURIComponent(keyword)}` : '';
+
+            kbLoadStatus.textContent = keyword
+                ? `正在搜索“${keyword}”……`
+                : '正在读取后端法规数据库……';
+            kbDocumentList.innerHTML = `
+                <div class="p-8 text-center text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                    <div class="text-sm">正在加载规范数据……</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE}/regulations/list?page=1&page_size=100${query}`
+                );
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || '读取规范列表失败');
+                }
+
+                const items = result.data.items;
+                const total = result.data.pagination.total;
+                const latestUpdatedAt = getLatestUpdatedAt(items);
+                const latestDate = latestUpdatedAt
+                    ? latestUpdatedAt.replace('T', ' ').replace('Z', '').slice(0, 16)
+                    : '--';
+
+                if (!keyword) {
+                    kbRegulationCount.textContent = total;
+                    kbIndexedCount.textContent = total;
+                    kbLastUpdated.textContent = latestDate.slice(0, 10);
+                    settingsRegulationCount.textContent = `${total} 份`;
+                    settingsLastUpdated.textContent = latestDate;
+                }
+
+                kbLoadStatus.textContent = keyword
+                    ? `找到 ${total} 份与“${keyword}”相关的规范`
+                    : `已从后端数据库加载 ${total} 份规范`;
+
+                if (items.length === 0) {
+                    kbDocumentList.innerHTML = `
+                        <div class="p-8 text-center text-gray-400">
+                            <i class="fa-solid fa-search text-3xl mb-2"></i>
+                            <div class="text-sm">没有找到相关规范</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                kbDocumentList.innerHTML = items.map(item => `
+                    <div class="p-4 flex items-start justify-between gap-4 hover:bg-gray-50">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-book text-industrial-blue"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-medium text-gray-900">
+                                    <span class="text-industrial-blue">${escapeHtml(item.code)}</span>
+                                    ${escapeHtml(item.title)}
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    ${escapeHtml(item.release_date)} 发布 ·
+                                    版本 ${escapeHtml(item.version)} ·
+                                    ${item.is_new ? '新增规范' : '已索引'}
+                                </div>
+                                <div class="text-sm text-gray-600 mt-2 line-clamp-2">
+                                    ${escapeHtml(item.content)}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="showRegulationDetail(${Number(item.id)})"
+                            class="px-3 py-1.5 text-sm text-industrial-blue border border-blue-200 rounded-lg hover:bg-blue-50 flex-shrink-0">
+                            <i class="fa-solid fa-eye mr-1"></i>详情
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                kbLoadStatus.textContent = '无法连接后端法规服务';
+                kbDocumentList.innerHTML = `
+                    <div class="p-8 text-center text-red-500">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+                        <div class="font-medium">规范列表加载失败</div>
+                        <div class="text-sm mt-1">${escapeHtml(error.message)}</div>
+                        <div class="text-xs text-gray-500 mt-2">请确认后端窗口正在运行 http://127.0.0.1:5000</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function showRegulationDetail(regulationId) {
+            try {
+                const response = await fetch(`${API_BASE}/regulations/${regulationId}`);
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || '读取详情失败');
+                }
+                const item = result.data;
+                alert(
+                    `${item.code} ${item.title}\n\n` +
+                    `发布日期：${item.release_date}\n` +
+                    `版本：${item.version}\n\n` +
+                    `${item.content}`
+                );
+            } catch (error) {
+                alert(`读取规范详情失败：${error.message}`);
+            }
+        }
+
+        // === 页面切换 ===
+        function switchPage(pageId) {
+            currentPage = pageId;
+
+            // 更新导航样式
+            navBtns.forEach(btn => {
+                const btnId = btn.id.replace('nav-', '');
+                if (btnId === pageId) {
+                    btn.classList.add('bg-industrial-blue', 'text-white');
+                    btn.classList.remove('text-gray-600', 'hover:bg-gray-100');
+                } else {
+                    btn.classList.remove('bg-industrial-blue', 'text-white');
+                    btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+                }
+            });
+
+            // 显示对应页面
+            Object.keys(pages).forEach(key => {
+                if (key === pageId) {
+                    pages[key].classList.remove('hidden');
+                } else {
+                    pages[key].classList.add('hidden');
+                }
+            });
+
+            // 问答页面显示右侧面板
+            if (pageId === 'qa') {
+                rightPanel.classList.remove('hidden');
+            } else {
+                rightPanel.classList.add('hidden');
+            }
+
+            if (pageId === 'kb') {
+                loadKnowledgeBase();
+            }
+        }
+
+        function switchTab(mode) {
+            currentMode = mode;
+            if (mode === 'qa') {
+                tabQaBtn.classList.add('text-industrial-blue', 'border-industrial-blue', 'bg-blue-50');
+                tabQaBtn.classList.remove('text-gray-500', 'border-transparent');
+                tabDocBtn.classList.remove('text-industrial-blue', 'border-industrial-blue', 'bg-blue-50');
+                tabDocBtn.classList.add('text-gray-500', 'border-transparent');
+            } else {
+                tabDocBtn.classList.add('text-industrial-blue', 'border-industrial-blue', 'bg-blue-50');
+                tabDocBtn.classList.remove('text-gray-500', 'border-transparent');
+                tabQaBtn.classList.remove('text-industrial-blue', 'border-industrial-blue', 'bg-blue-50');
+                tabQaBtn.classList.add('text-gray-500', 'border-transparent');
+            }
+        }
+
+        function adjustTextareaHeight(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // === 渲染函数 ===
+        function renderUserMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex gap-3 justify-end';
+            messageDiv.innerHTML = `
+                <div class="flex-1 max-w-[70%]">
+                    <div class="flex items-center gap-2 mb-1 justify-end">
+                        <span class="text-xs text-gray-500">刚刚</span>
+                        <span class="font-medium text-gray-900">我</span>
+                    </div>
+                    <div class="bg-industrial-blue text-white p-4 rounded-xl shadow-sm">
+                        <p>${text}</p>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-user text-gray-600"></i>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function renderLoadingMessage() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-message';
+            loadingDiv.className = 'flex gap-3';
+            loadingDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-industrial-blue flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-robot text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-900">智能规范助手</span>
+                        <span class="text-xs text-gray-500">思考中...</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="typing-indicator">
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(loadingDiv);
+            scrollToBottom();
+        }
+
+        function removeLoadingMessage() {
+            const loadingDiv = document.getElementById('loading-message');
+            if (loadingDiv) loadingDiv.remove();
+        }
+
+        function renderAIMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex gap-3';
+            messageDiv.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-industrial-blue flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-robot text-white"></i>
+                </div>
+                <div class="flex-1 max-w-[85%]">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-900">智能规范助手</span>
+                        <span class="text-xs text-gray-500">刚刚</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                        <div>
+                            <h4 class="text-sm font-semibold text-industrial-blue mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-comment-dots"></i>
+                                通俗工地白话解读
+                            </h4>
+                            <p class="text-gray-700 text-sm leading-relaxed">${data.plainAnswer}</p>
+                        </div>
+                        <div class="bg-doc-yellow p-3 rounded-lg">
+                            <h4 class="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-file-text"></i>
+                                规范原文依据
+                            </h4>
+                            <pre class="text-gray-700 text-xs leading-relaxed whitespace-pre-wrap font-mono">${data.sourceAnswer}</pre>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.sources.map(source =>
+                                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-industrial-blue border border-blue-200">
+                                    <i class="fa-solid fa-book mr-1"></i>${source}
+                                </span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function renderDocList(sources) {
+            if (!sources || sources.length === 0) {
+                docList.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fa-solid fa-search text-4xl mb-2"></i>
+                        <p class="text-sm">暂无匹配文档</p>
+                        <p class="text-xs mt-1">请先提问获取相关规范</p>
+                    </div>
+                `;
+                return;
+            }
+            docList.innerHTML = sources.map((source, index) => `
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-industrial-blue hover:bg-safe-blue transition-colors cursor-pointer">
+                    <div class="flex items-start gap-2">
+                        <div class="w-8 h-8 rounded bg-industrial-blue text-white flex items-center justify-center flex-shrink-0 text-sm font-bold">${index + 1}</div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-medium text-gray-900 truncate">${source}</h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded">已匹配</span>
+                                <button class="text-xs text-industrial-blue hover:underline">查看详情</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            rightPanel.classList.remove('hidden');
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => chatContainer.scrollTop = chatContainer.scrollHeight, 100);
+        }
+
+        function toggleVoiceInput() {
+            const icon = document.querySelector('#chat-input + button i');
+            if (icon.classList.contains('fa-microphone')) {
+                icon.classList.replace('fa-microphone', 'fa-microphone-slash');
+                icon.classList.add('text-red-500');
+                alert('语音输入功能正在开发中，请使用文字输入。');
+                setTimeout(() => {
+                    icon.classList.replace('fa-microphone-slash', 'fa-microphone');
+                    icon.classList.remove('text-red-500');
+                }, 500);
+            }
+        }
+
+        // === 发送消息 ===
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            renderUserMessage(text);
+            chatInput.value = '';
+            adjustTextareaHeight(chatInput);
+            renderLoadingMessage();
+
+            setTimeout(() => {
+                removeLoadingMessage();
+                let qaData = mockQAData[text];
+                if (!qaData) {
+                    for (const key of Object.keys(mockQAData)) {
+                        if (text.includes(key) || key.includes(text)) {
+                            qaData = mockQAData[key];
+                            break;
+                        }
+                    }
+                }
+                if (!qaData) qaData = { ...defaultQA, question: text };
+
+                renderAIMessage(qaData);
+                renderDocList(qaData.sources);
+            }, 3000);
+        }
+
+        // === 启动 ===
+        init();
+    </script>
+</body>
+</html>
