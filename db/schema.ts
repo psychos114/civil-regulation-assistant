@@ -15,3 +15,9 @@ export const regulations = sqliteTable(
   },
   (table) => [uniqueIndex("idx_regulations_code").on(table.code)],
 );
+
+export const chatRateLimits = sqliteTable("chat_rate_limits", {
+  bucket: text("bucket").primaryKey(),
+  count: integer("count").notNull().default(1),
+  updatedAt: text("updated_at").notNull(),
+});

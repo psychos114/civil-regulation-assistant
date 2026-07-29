@@ -13,18 +13,38 @@ test("build includes the regulation assistant frontend", async () => {
   assert.match(html, /regulations\/download/);
   assert.match(html, /regulations\/list/);
   assert.match(html, /regulations\/\$\{regulationId\}/);
+  assert.match(html, /\$\{API_BASE\}\/chat/);
+  assert.doesNotMatch(html, /STEPFUN_API_KEY/);
   assert.doesNotMatch(html, /所有数据仅存储在本地设备/);
 });
 
 test("build includes D1 configuration and migrations", async () => {
-  const [hosting, migration] = await Promise.all([
+  const [hosting, regulationsMigration, rateLimitMigration] = await Promise.all([
     readFile(new URL("dist/.openai/hosting.json", root), "utf8"),
     readFile(
       new URL("dist/.openai/drizzle/0000_worthless_black_tom.sql", root),
       "utf8",
     ),
+    readFile(
+      new URL("dist/.openai/drizzle/0001_material_mantis.sql", root),
+      "utf8",
+    ),
   ]);
   assert.equal(JSON.parse(hosting).d1, "DB");
-  assert.match(migration, /CREATE TABLE `regulations`/);
-  assert.match(migration, /CREATE UNIQUE INDEX `idx_regulations_code`/);
+  assert.match(regulationsMigration, /CREATE TABLE `regulations`/);
+  assert.match(
+    regulationsMigration,
+    /CREATE UNIQUE INDEX `idx_regulations_code`/,
+  );
+  assert.match(rateLimitMigration, /CREATE TABLE `chat_rate_limits`/);
+});
+
+test("server bundle keeps the StepFun key on the server", async () => {
+  const serverBundle = await readFile(
+    new URL("dist/server/index.js", root),
+    "utf8",
+  );
+  assert.match(serverBundle, /STEPFUN_API_KEY/);
+  assert.match(serverBundle, /step-3\.7-flash/);
+  assert.match(serverBundle, /chat\/completions/);
 });

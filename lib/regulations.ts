@@ -107,6 +107,13 @@ async function initializeDatabase(): Promise<void> {
     db.prepare(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_regulations_code ON regulations(code)",
     ),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS chat_rate_limits (
+        bucket TEXT PRIMARY KEY,
+        count INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL
+      )
+    `),
   ]);
 
   const countResult = await db

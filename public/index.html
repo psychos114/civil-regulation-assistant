@@ -658,48 +658,6 @@
     <div id="sidebar-overlay" class="md:hidden fixed inset-0 bg-black/50 z-30 hidden"></div>
 
     <script>
-        // === 模拟数据 ===
-        const mockQAData = {
-            "高空作业安全规范": {
-                question: "高空作业安全规范",
-                plainAnswer: "简单来说，高空作业就是在离地面2米以上的地方干活。核心要求有三点：第一，必须系好安全带，而且要挂在牢固的地方；第二，作业区域下面必须设警戒线，防止东西掉下来砸到人；第三，大风（六级以上）、大雨、大雾天不能高空作业。要是违反这些规定，出了事可是要负责任的。",
-                sourceAnswer: "1. 凡在坠落高度基准面2米及以上有可能坠落的高处进行作业，均应视为高处作业（JGJ 80-2016 第2.1.1条）\n\n2. 高处作业人员必须正确佩戴安全带，安全带应高挂低用，挂点应安全可靠（JGJ 80-2016 第3.2.1条）\n\n3. 坠落高度超过15米的高处作业，必须设置双层防护棚（JGJ 80-2016 第4.2.3条）\n\n4. 六级及以上大风、大雨、大雪、浓雾等恶劣天气，不得进行露天高处作业（JGJ 80-2016 第4.3.2条）",
-                sources: ["JGJ 80-2016 建筑施工高处作业安全技术规范", "GB 50194-2014 建设工程施工现场消防安全技术规范"]
-            },
-            "混凝土梁柱验收": {
-                question: "混凝土梁柱验收",
-                plainAnswer: "混凝土梁柱建好后不能马上用，得验收合格才行。首先看外观，不能有蜂窝、麻面这些毛病；然后要测强度，得达到设计要求的强度等级；钢筋的数量和位置也得检查，不能少放或者放错位置。最重要的是要做试块试验，证明混凝土真的达标了。",
-                sourceAnswer: "1. 现浇结构的外观质量不应有严重缺陷。对已经出现的严重缺陷，应由施工单位提出技术处理方案，并经监理（建设）单位认可后进行处理（GB 50204-2015 第8.2.1条）\n\n2. 混凝土结构实体强度应符合设计要求。混凝土强度应按现行国家标准《混凝土强度检验评定标准》GB/T 50107的规定检验评定（GB 50204-2015 第10.1.1条）\n\n3. 钢筋的品种、级别、规格和数量必须符合设计要求（GB 50204-2015 第5.1.1条）\n\n4. 梁、柱的受力钢筋保护层厚度偏差不应超过±5mm（GB 50204-2015 附录E）",
-                sources: ["GB 50204-2015 混凝土结构工程施工质量验收规范", "GB/T 50107-2010 混凝土强度检验评定标准"]
-            },
-            "园区消防巡检": {
-                question: "园区消防巡检",
-                plainAnswer: "消防巡检主要是查三样东西：灭火器能不能用、消防通道通不通、电气设备有没有隐患。灭火器要定期检查压力，过期了要换；消防通道不能堆东西，必须随时畅通；电线不能乱拉乱接，配电箱要保持干燥。发现问题要马上记录整改，不能拖延。",
-                sourceAnswer: "1. 消防安全重点单位应当进行每日防火巡查，并确定巡查的人员、内容、部位和频次（GB 25506-2010 第5.2.1条）\n\n2. 消防设施、器材应当定期组织检验、维修，确保完好有效（《中华人民共和国消防法》第二十八条）\n\n3. 禁止在疏散通道、安全出口、消防车通道上设置障碍物（GB 25506-2010 第6.1.1条）\n\n4. 电气线路敷设、电气设备安装和维修应当符合消防技术标准和管理规定（GB 25506-2010 第7.1.1条）",
-                sources: ["GB 25506-2010 消防控制室通用技术要求", "中华人民共和国消防法", "GB 50116-2013 火灾自动报警系统设计规范"]
-            },
-            "政府采购招标流程": {
-                question: "政府采购招标流程",
-                plainAnswer: "政府采购招标有一套严格的流程，不能随便来。首先要编招标文件，明确要求和评标办法；然后发布公告让大家报名；接着开标、评标，选出中标单位；最后公示结果，签合同。整个过程要公开透明，防止暗箱操作。",
-                sourceAnswer: "1. 政府采购工程以及与工程建设有关的货物、服务，采用招标方式采购的，适用《中华人民共和国招标投标法》及其实施条例（《中华人民共和国政府采购法》第二十七条）\n\n2. 招标人应当按照资格预审公告、招标公告或者投标邀请书规定的时间、地点发售招标文件（《招标投标法实施条例》第十六条）\n\n3. 评标委员会成员应当依照招标投标法和本条例的规定，按照招标文件规定的评标标准和方法，客观、公正地对投标文件提出评审意见（《招标投标法实施条例》第四十九条）\n\n4. 依法必须进行招标的项目，招标人应当自收到评标报告之日起3日内公示中标候选人，公示期不得少于3日（《招标投标法实施条例》第五十四条）",
-                sources: ["中华人民共和国政府采购法", "中华人民共和国招标投标法实施条例", "政府采购货物和服务招标投标管理办法"]
-            },
-            "工地应急处置预案": {
-                question: "工地应急处置预案",
-                plainAnswer: "工地出事了不能乱，要有应急预案。首先要成立应急小组，明确谁负责指挥、谁负责救援、谁负责上报；然后要准备好应急物资，比如急救箱、灭火器、对讲机；还要定期演练，让大家知道出事了该往哪跑、该怎么做。遇到紧急情况，先救人，再救物。",
-                sourceAnswer: "1. 施工单位应当根据建设工程施工的特点、范围，对施工现场易发生重大事故的部位、环节进行监控，制定施工现场生产安全事故应急救援预案（《建设工程安全生产管理条例》第四十九条）\n\n2. 应急救援预案应当包括应急救援组织机构、人员、职责、应急救援程序、应急救援物资和设备等内容（JGJ/T 278-2012 第3.2条）\n\n3. 施工单位应当定期组织应急救援演练（《建设工程安全生产管理条例》第四十九条）\n\n4. 发生生产安全事故后，施工单位应当采取措施防止事故扩大，保护事故现场（《建设工程安全生产管理条例》第五十一条）",
-                sources: ["建设工程安全生产管理条例", "JGJ/T 278-2012 建筑施工安全生产标准化考评暂行办法", "GB/T 29639-2020 生产经营单位生产安全事故应急预案编制导则"]
-            }
-        };
-
-        // 默认回答
-        const defaultQA = {
-            question: "",
-            plainAnswer: "根据您的问题，我为您整理了相关规范要点。简单来说，土木工程施工必须严格遵守国家和行业的相关标准，确保施工安全和工程质量。",
-            sourceAnswer: "1. 建设工程必须严格按照国家现行有关标准、规范进行施工（GB 50300-2013 第1.0.3条）\n\n2. 施工单位应当建立健全安全生产责任制度（《建设工程安全生产管理条例》第二十条）",
-            sources: ["GB 50300-2013 建筑工程施工质量验收统一标准", "建设工程安全生产管理条例"]
-        };
-
         // === DOM引用 ===
         const chatContainer = document.getElementById('chat-container');
         const chatInput = document.getElementById('chat-input');
@@ -750,6 +708,7 @@
         // 当前状态
         let currentMode = 'qa';
         let currentPage = 'qa';
+        const chatHistory = [];
 
         // === 初始化 ===
         function init() {
@@ -1124,7 +1083,7 @@ async function checkForUpdates() {
                         <span class="font-medium text-gray-900">我</span>
                     </div>
                     <div class="bg-industrial-blue text-white p-4 rounded-xl shadow-sm">
-                        <p>${text}</p>
+                        <p class="whitespace-pre-wrap">${escapeHtml(text)}</p>
                     </div>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
@@ -1167,6 +1126,10 @@ async function checkForUpdates() {
         }
 
         function renderAIMessage(data) {
+            const plainAnswer = escapeHtml(data.plainAnswer).replace(/\n/g, '<br>');
+            const sourceAnswer = escapeHtml(data.sourceAnswer);
+            const sources = Array.isArray(data.sources) ? data.sources : [];
+            const model = data.model ? escapeHtml(data.model) : '';
             const messageDiv = document.createElement('div');
             messageDiv.className = 'flex gap-3';
             messageDiv.innerHTML = `
@@ -1176,7 +1139,7 @@ async function checkForUpdates() {
                 <div class="flex-1 max-w-[85%]">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="font-medium text-gray-900">智能规范助手</span>
-                        <span class="text-xs text-gray-500">刚刚</span>
+                        <span class="text-xs text-gray-500">${model || '刚刚'}</span>
                     </div>
                     <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
                         <div>
@@ -1184,19 +1147,19 @@ async function checkForUpdates() {
                                 <i class="fa-solid fa-comment-dots"></i>
                                 通俗工地白话解读
                             </h4>
-                            <p class="text-gray-700 text-sm leading-relaxed">${data.plainAnswer}</p>
+                            <p class="text-gray-700 text-sm leading-relaxed">${plainAnswer}</p>
                         </div>
                         <div class="bg-doc-yellow p-3 rounded-lg">
                             <h4 class="text-sm font-semibold text-amber-700 mb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-file-text"></i>
                                 规范原文依据
                             </h4>
-                            <pre class="text-gray-700 text-xs leading-relaxed whitespace-pre-wrap font-mono">${data.sourceAnswer}</pre>
+                            <pre class="text-gray-700 text-xs leading-relaxed whitespace-pre-wrap font-mono">${sourceAnswer}</pre>
                         </div>
                         <div class="flex flex-wrap gap-2">
-                            ${data.sources.map(source =>
+                            ${sources.map(source =>
                                 `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-industrial-blue border border-blue-200">
-                                    <i class="fa-solid fa-book mr-1"></i>${source}
+                                    <i class="fa-solid fa-book mr-1"></i>${escapeHtml(source)}
                                 </span>`
                             ).join('')}
                         </div>
@@ -1223,7 +1186,7 @@ async function checkForUpdates() {
                     <div class="flex items-start gap-2">
                         <div class="w-8 h-8 rounded bg-industrial-blue text-white flex items-center justify-center flex-shrink-0 text-sm font-bold">${index + 1}</div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-medium text-gray-900 truncate">${source}</h4>
+                            <h4 class="text-sm font-medium text-gray-900 truncate">${escapeHtml(source)}</h4>
                             <div class="flex items-center gap-2 mt-1">
                                 <span class="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded">已匹配</span>
                                 <button class="text-xs text-industrial-blue hover:underline">查看详情</button>
@@ -1253,31 +1216,58 @@ async function checkForUpdates() {
         }
 
         // === 发送消息 ===
-        function sendMessage() {
+        async function sendMessage() {
             const text = chatInput.value.trim();
-            if (!text) return;
+            if (!text || sendBtn.disabled) return;
 
             renderUserMessage(text);
             chatInput.value = '';
             adjustTextareaHeight(chatInput);
             renderLoadingMessage();
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
 
-            setTimeout(() => {
-                removeLoadingMessage();
-                let qaData = mockQAData[text];
-                if (!qaData) {
-                    for (const key of Object.keys(mockQAData)) {
-                        if (text.includes(key) || key.includes(text)) {
-                            qaData = mockQAData[key];
-                            break;
-                        }
-                    }
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: text,
+                        history: chatHistory.slice(-8)
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || '大模型回答失败');
                 }
-                if (!qaData) qaData = { ...defaultQA, question: text };
 
-                renderAIMessage(qaData);
-                renderDocList(qaData.sources);
-            }, 3000);
+                const answer = result.data;
+                removeLoadingMessage();
+                renderAIMessage(answer);
+                renderDocList(answer.sources);
+
+                chatHistory.push(
+                    { role: 'user', content: text },
+                    { role: 'assistant', content: answer.plainAnswer }
+                );
+                if (chatHistory.length > 8) {
+                    chatHistory.splice(0, chatHistory.length - 8);
+                }
+            } catch (error) {
+                removeLoadingMessage();
+                renderAIMessage({
+                    plainAnswer: `暂时无法获得大模型回答：${error.message}`,
+                    sourceAnswer: '本次请求未获得模型结果，请稍后重试；紧急或高风险工程问题请立即咨询具备资质的专业人员。',
+                    sources: []
+                });
+                renderDocList([]);
+                console.error(error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
         }
 
         // === 启动 ===
