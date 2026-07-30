@@ -114,6 +114,27 @@ async function initializeDatabase(): Promise<void> {
         updated_at TEXT NOT NULL
       )
     `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS rag_chunks (
+        chunk_id TEXT PRIMARY KEY,
+        doc_id TEXT NOT NULL,
+        company TEXT NOT NULL,
+        stock_code TEXT NOT NULL DEFAULT '',
+        title TEXT NOT NULL,
+        document_type TEXT NOT NULL DEFAULT '',
+        report_year TEXT NOT NULL DEFAULT '',
+        source_url TEXT NOT NULL,
+        file_format TEXT NOT NULL,
+        page INTEGER,
+        content TEXT NOT NULL
+      )
+    `),
+    db.prepare(
+      "CREATE INDEX IF NOT EXISTS idx_rag_chunks_doc_id ON rag_chunks(doc_id)",
+    ),
+    db.prepare(
+      "CREATE INDEX IF NOT EXISTS idx_rag_chunks_title ON rag_chunks(title)",
+    ),
   ]);
 
   const countResult = await db

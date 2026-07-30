@@ -40,3 +40,6 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# Local source documents used to generate the database migration.
+/rag_import/

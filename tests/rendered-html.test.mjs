@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -14,6 +14,9 @@ test("build includes the regulation assistant frontend", async () => {
   assert.match(html, /regulations\/list/);
   assert.match(html, /regulations\/\$\{regulationId\}/);
   assert.match(html, /\$\{API_BASE\}\/chat/);
+  assert.match(html, /知识库依据与核验边界/);
+  assert.match(html, /sourceDetails/);
+  assert.match(html, /查看官方来源/);
   assert.doesNotMatch(html, /STEPFUN_API_KEY/);
   assert.doesNotMatch(html, /所有数据仅存储在本地设备/);
 });
@@ -47,4 +50,26 @@ test("server bundle keeps the StepFun key on the server", async () => {
   assert.match(serverBundle, /STEPFUN_API_KEY/);
   assert.match(serverBundle, /step-3\.7-flash/);
   assert.match(serverBundle, /chat\/completions/);
+  assert.match(serverBundle, /rag_chunks/);
+  assert.match(serverBundle, /sourceDetails/);
+  assert.match(serverBundle, /api\/rag\/status/);
+});
+
+test("RAG migration contains the company knowledge base", async () => {
+  const drizzleDirectory = new URL("dist/.openai/drizzle/", root);
+  const migrationNames = await readdir(drizzleDirectory);
+  const migrationContents = await Promise.all(
+    migrationNames
+      .filter((name) => name.endsWith(".sql"))
+      .map((name) => readFile(new URL(name, drizzleDirectory), "utf8")),
+  );
+  const ragMigration = migrationContents.find((content) =>
+    content.includes("CREATE TABLE `rag_chunks`"),
+  );
+
+  assert.ok(ragMigration, "missing rag_chunks migration");
+  assert.match(ragMigration, /CREATE INDEX `idx_rag_chunks_doc_id`/);
+  assert.match(ragMigration, /RAG SEED START/);
+  assert.match(ragMigration, /cscec_2025_annual_report/);
+  assert.match(ragMigration, /中国建筑股份有限公司/);
 });

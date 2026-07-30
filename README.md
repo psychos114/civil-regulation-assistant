@@ -10,6 +10,7 @@
 - `GET /api/regulations/list?page=1&page_size=10`
 - `POST /api/regulations/download`
 - `GET /api/regulations/{id}`
+- `GET /api/rag/status`
 
 所有接口允许跨域访问。初次访问时会自动写入 33 条法规演示数据。
 
@@ -21,7 +22,21 @@
 - `STEPFUN_BASE_URL`：默认为 `https://api.stepfun.com/step_plan/v1`
 - `STEPFUN_MODEL`：默认为 `step-3.7-flash`
 
-公开站点按访问者每小时最多 20 次提问进行限流。回答会参考云端法规摘要，但不能代替官方法规全文和具备资质的专业人员审核。
+公开站点按访问者每小时最多 20 次提问进行限流。回答会同时检索：
+
+- 云端法规摘要；
+- 中国建筑股份有限公司公开的年度报告、ESG 报告、季度报告、内部控制报告和官网业务资料。
+
+企业资料会保留文档名称、PDF 页码和官方来源网址。当前数据集包含 7 份文档、715 个文本块。回答不能代替官方法规全文和具备资质的专业人员审核。
+
+## 更新 RAG 数据
+
+1. 将本地生成的 `chunks.jsonl` 放入 `rag_import/`。
+2. 修改 `db/schema.ts` 后运行 `npm run db:generate`。
+3. 运行 `npm run rag:seed`，把经过校验的文本块写入最新的 `rag_chunks` 迁移。
+4. 运行 `npm test` 验证迁移、服务端检索和网页来源展示。
+
+`rag_import/` 不会提交到 Git；生产部署使用生成后的 D1 迁移。不要把 `.env`、API 密钥或虚拟环境上传到仓库。
 
 ## 本地开发
 

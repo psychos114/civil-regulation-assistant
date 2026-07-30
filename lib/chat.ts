@@ -5,6 +5,7 @@ import {
   internalError,
   successResponse,
 } from "@/lib/regulations";
+import { retrieveRagContext } from "@/lib/rag";
 
 type ChatRole = "user" | "assistant";
 
@@ -126,7 +127,7 @@ async function regulationContext(): Promise<{
       SELECT title, code, content, version
       FROM regulations
       ORDER BY is_new DESC, release_date DESC, id DESC
-      LIMIT 60
+      LIMIT 20
     `)
     .all<RegulationContextRow>();
   const rows = result.results;
@@ -156,12 +157,12 @@ function modelResponseSchema() {
           },
           sourceAnswer: {
             type: "string",
-            description: "基于所给法规摘要的依据说明，不得虚构条款号",
+            description: "基于检索资料的依据说明，不得虚构条款号、页码或数据",
           },
           sources: {
             type: "array",
             items: { type: "string" },
-            description: "实际使用的法规编号和名称",
+            description: "实际使用的资料标签，必须与参考资料中的名称一致",
           },
         },
         required: ["plainAnswer", "sourceAnswer", "sources"],
@@ -255,24 +256,39 @@ export async function chatWithModel(request: Request): Promise<Response> {
 
   const baseUrl = (runtime.STEPFUN_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
   const model = runtime.STEPFUN_MODEL || DEFAULT_MODEL;
-  const context = await regulationContext();
+  const [context, ragContext] = await Promise.all([
+    regulationContext(),
+    retrieveRagContext(question),
+  ]);
   const knownSources = new Set(
-    context.rows.flatMap((item) => [
-      `${item.code} ${item.title}`,
-      item.code,
-      item.title,
-    ]),
+    [
+      ...context.rows.flatMap((item) => [
+        `${item.code} ${item.title}`,
+        item.code,
+        item.title,
+      ]),
+      ...ragContext.sourceDetails.flatMap((item) => [
+        item.label,
+        item.title,
+      ]),
+    ],
   );
 
-  const systemPrompt = `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规查询帮助。
+  const systemPrompt = `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规与企业公开资料查询帮助。
 
 必须遵守以下规则：
-1. 优先依据下方“法规知识库摘要”回答，不得把摘要扩写成不存在的规范原文。
-2. 不得虚构条款号、强制性条文、处罚金额或技术参数。知识库没有具体条款号时，明确写“当前摘要未收录具体条款号，请核对官方全文”。
-3. sources 只能填写知识库中真实存在的法规编号和名称。
-4. 对涉及人身安全、结构安全、消防、法律责任的事项，提醒用户由具备资质的专业人员复核，并以主管部门或标准发布机构的正式文本为准。
-5. plainAnswer 使用易懂、可执行的语言；sourceAnswer 说明依据和核验边界。
-6. 不输出思考过程，只输出指定 JSON 结构。
+1. 优先依据下方“问题相关企业资料”和“法规知识库摘要”回答，不能利用未提供的记忆补充事实。
+2. 企业年报、ESG 报告和官网页面属于企业公开资料，不得称为法规或规范。
+3. 不得虚构条款号、页码、强制性条文、处罚金额、财务数据或技术参数。
+4. 资料不足时，明确写“现有知识库中没有找到足够依据”，并说明还需要核对什么资料。
+5. sources 只能填写参考资料中真实存在的法规编号、名称或《文档名称》· 第N页标签。
+6. 涉及具体数字时，sourceAnswer 必须说明文档名称和页码；涉及网页资料时说明官网来源。
+7. 对涉及人身安全、结构安全、消防、法律责任的事项，提醒用户由具备资质的专业人员复核，并以主管部门或标准发布机构的正式文本为准。
+8. plainAnswer 使用易懂、可执行的语言；sourceAnswer 说明依据和核验边界。
+9. 不输出思考过程，只输出指定 JSON 结构。
+
+问题相关企业资料：
+${ragContext.text || "本次问题未检索到相关企业资料。"}
 
 法规知识库摘要：
 ${context.text}`;
@@ -355,7 +371,29 @@ ${context.text}`;
 
   try {
     const answer = parseModelAnswer(content, knownSources);
-    return successResponse({ ...answer, model }, "大模型回答成功");
+    const citedSourceDetails = ragContext.sourceDetails.filter((detail) =>
+      answer.sources.some(
+        (source) =>
+          source.includes(detail.label) ||
+          detail.label.includes(source) ||
+          source.includes(detail.title),
+      ),
+    );
+    return successResponse(
+      {
+        ...answer,
+        sourceDetails:
+          citedSourceDetails.length > 0
+            ? citedSourceDetails
+            : ragContext.sourceDetails.slice(0, 3),
+        retrieval: {
+          rag_matches: ragContext.rows.length,
+          regulation_matches: context.rows.length,
+        },
+        model,
+      },
+      "大模型回答成功",
+    );
   } catch (error) {
     console.error("StepFun answer parsing failed", error);
     return errorResponse(

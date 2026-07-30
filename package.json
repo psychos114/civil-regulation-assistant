@@ -11,7 +11,8 @@
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "rag:seed": "node scripts/append-rag-seed.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
