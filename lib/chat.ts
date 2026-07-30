@@ -372,12 +372,19 @@ ${context.text}`;
   try {
     const answer = parseModelAnswer(content, knownSources);
     const citedSourceDetails = ragContext.sourceDetails.filter((detail) =>
-      answer.sources.some(
-        (source) =>
-          source.includes(detail.label) ||
-          detail.label.includes(source) ||
-          source.includes(detail.title),
-      ),
+      answer.sources.some((source) => {
+        const normalizedSource = source.replace(/[\s·•]/g, "");
+        const normalizedLabel = detail.label.replace(/[\s·•]/g, "");
+        const pageMatch = source.match(/第\s*(\d+)\s*页/);
+
+        if (pageMatch && detail.page) {
+          return (
+            Number(pageMatch[1]) === detail.page &&
+            normalizedSource.includes(detail.title.replace(/\s/g, ""))
+          );
+        }
+        return normalizedSource.includes(normalizedLabel);
+      }),
     );
     return successResponse(
       {
