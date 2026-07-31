@@ -22,7 +22,12 @@ test("build includes the regulation assistant frontend", async () => {
 });
 
 test("build includes D1 configuration and migrations", async () => {
-  const [hosting, regulationsMigration, rateLimitMigration] = await Promise.all([
+  const [
+    hosting,
+    regulationsMigration,
+    rateLimitMigration,
+    vectorMigration,
+  ] = await Promise.all([
     readFile(new URL("dist/.openai/hosting.json", root), "utf8"),
     readFile(
       new URL("dist/.openai/drizzle/0000_worthless_black_tom.sql", root),
@@ -30,6 +35,10 @@ test("build includes D1 configuration and migrations", async () => {
     ),
     readFile(
       new URL("dist/.openai/drizzle/0001_material_mantis.sql", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("dist/.openai/drizzle/0003_tense_thena.sql", root),
       "utf8",
     ),
   ]);
@@ -40,6 +49,8 @@ test("build includes D1 configuration and migrations", async () => {
     /CREATE UNIQUE INDEX `idx_regulations_code`/,
   );
   assert.match(rateLimitMigration, /CREATE TABLE `chat_rate_limits`/);
+  assert.match(vectorMigration, /CREATE TABLE `rag_vector_store`/);
+  assert.match(vectorMigration, /CREATE TABLE `rag_vector_documents`/);
 });
 
 test("server bundle keeps the StepFun key on the server", async () => {
@@ -53,6 +64,11 @@ test("server bundle keeps the StepFun key on the server", async () => {
   assert.match(serverBundle, /rag_chunks/);
   assert.match(serverBundle, /sourceDetails/);
   assert.match(serverBundle, /api\/rag\/status/);
+  assert.match(serverBundle, /api\/rag\/vector-store/);
+  assert.match(serverBundle, /StepFun Vector Store/);
+  assert.match(serverBundle, /\/vector_stores/);
+  assert.match(serverBundle, /retrieval-text/);
+  assert.match(serverBundle, /civil_company_knowledge/);
 });
 
 test("RAG migration contains the company knowledge base", async () => {

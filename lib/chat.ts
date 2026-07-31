@@ -5,7 +5,12 @@ import {
   internalError,
   successResponse,
 } from "@/lib/regulations";
-import { retrieveRagContext } from "@/lib/rag";
+import {
+  ragDocumentCatalog,
+  resolveRagSourceDetails,
+  retrieveRagContext,
+} from "@/lib/rag";
+import { getReadyVectorStore } from "@/lib/vector-store";
 
 type ChatRole = "user" | "assistant";
 
@@ -256,9 +261,11 @@ export async function chatWithModel(request: Request): Promise<Response> {
 
   const baseUrl = (runtime.STEPFUN_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
   const model = runtime.STEPFUN_MODEL || DEFAULT_MODEL;
-  const [context, ragContext] = await Promise.all([
+  const [context, ragContext, ragCatalog, vectorStore] = await Promise.all([
     regulationContext(),
     retrieveRagContext(question),
+    ragDocumentCatalog(),
+    getReadyVectorStore(),
   ]);
   const knownSources = new Set(
     [
@@ -271,13 +278,15 @@ export async function chatWithModel(request: Request): Promise<Response> {
         item.label,
         item.title,
       ]),
+      ...ragCatalog.map((item) => item.title),
     ],
   );
 
-  const systemPrompt = `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规与企业公开资料查询帮助。
+  const systemPrompt = (enterpriseContext: string, vectorEnabled: boolean) =>
+    `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规与企业公开资料查询帮助。
 
 必须遵守以下规则：
-1. 优先依据下方“问题相关企业资料”和“法规知识库摘要”回答，不能利用未提供的记忆补充事实。
+1. 优先依据${vectorEnabled ? "向量知识库检索工具返回的企业资料" : "下方“问题相关企业资料”"}和“法规知识库摘要”回答，不能利用未提供的记忆补充事实。
 2. 企业年报、ESG 报告和官网页面属于企业公开资料，不得称为法规或规范。
 3. 不得虚构条款号、页码、强制性条文、处罚金额、财务数据或技术参数。
 4. 资料不足时，明确写“现有知识库中没有找到足够依据”，并说明还需要核对什么资料。
@@ -288,34 +297,98 @@ export async function chatWithModel(request: Request): Promise<Response> {
 9. 不输出思考过程，只输出指定 JSON 结构。
 
 问题相关企业资料：
-${ragContext.text || "本次问题未检索到相关企业资料。"}
+${enterpriseContext}
 
 法规知识库摘要：
 ${context.text}`;
 
+  const keywordPrompt = systemPrompt(
+    ragContext.text || "本次问题未检索到相关企业资料。",
+    false,
+  );
+  const vectorPrompt = systemPrompt(
+    "请调用 civil_company_knowledge 向量检索工具。检索结果中的“资料标签”“页码”和“官方来源”必须原样用于回答和 sources；没有检索依据时不得猜测。",
+    true,
+  );
+
+  const requestBody = (
+    prompt: string,
+    useVectorStore: boolean,
+  ): Record<string, unknown> => ({
+    model,
+    messages: [
+      { role: "system", content: prompt },
+      ...history,
+      { role: "user", content: question },
+    ],
+    response_format: modelResponseSchema(),
+    reasoning_effort: "low",
+    temperature: 0.2,
+    max_tokens: 1200,
+    stream: false,
+    ...(useVectorStore && vectorStore
+      ? {
+          tools: [
+            {
+              type: "retrieval",
+              function: {
+                name: "civil_company_knowledge",
+                description:
+                  "中国建筑股份有限公司公开的年度报告、季度报告、ESG报告、内部控制报告和官网业务资料，资料中包含文档名称、PDF页码与官方来源。",
+                options: {
+                  vector_store_id: vectorStore.id,
+                  prompt_template:
+                    "从向量知识库 {{knowledge}} 中检索与问题 {{query}} 语义最相关的资料。必须保留资料标签、文档名称、页码、官方来源和原文数据；找不到时明确说明。",
+                },
+              },
+            },
+          ],
+          tool_choice: "auto",
+        }
+      : {}),
+  });
+
   let upstream: Response;
+  let retrievalMode: "vector" | "keyword_fallback" = vectorStore
+    ? "vector"
+    : "keyword_fallback";
   try {
-    upstream = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    upstream = await fetch(
+      `${vectorStore ? vectorStore.baseUrl : baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          requestBody(
+            vectorStore ? vectorPrompt : keywordPrompt,
+            Boolean(vectorStore),
+          ),
+        ),
+        signal: AbortSignal.timeout(60_000),
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history,
-          { role: "user", content: question },
-        ],
-        response_format: modelResponseSchema(),
-        reasoning_effort: "low",
-        temperature: 0.2,
-        max_tokens: 1200,
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
+    );
+
+    if (!upstream.ok && vectorStore) {
+      const vectorError = await upstream.text();
+      console.error(
+        "StepFun vector retrieval failed; using keyword fallback",
+        upstream.status,
+        vectorError.slice(0, 500),
+      );
+      retrievalMode = "keyword_fallback";
+      upstream = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody(keywordPrompt, false)),
+        signal: AbortSignal.timeout(60_000),
+      });
+    }
   } catch (error) {
     console.error("StepFun request failed", error);
     return errorResponse(
@@ -371,6 +444,10 @@ ${context.text}`;
 
   try {
     const answer = parseModelAnswer(content, knownSources);
+    const vectorSourceDetails =
+      retrievalMode === "vector"
+        ? await resolveRagSourceDetails(answer.sources, ragCatalog)
+        : [];
     const citedSourceDetails = ragContext.sourceDetails.filter((detail) =>
       answer.sources.some((source) => {
         const normalizedSource = source.replace(/[\s·•]/g, "");
@@ -390,11 +467,18 @@ ${context.text}`;
       {
         ...answer,
         sourceDetails:
-          citedSourceDetails.length > 0
-            ? citedSourceDetails
-            : ragContext.sourceDetails.slice(0, 3),
+          vectorSourceDetails.length > 0
+            ? vectorSourceDetails
+            : citedSourceDetails.length > 0
+              ? citedSourceDetails
+              : ragContext.sourceDetails.slice(0, 3),
         retrieval: {
-          rag_matches: ragContext.rows.length,
+          mode: retrievalMode,
+          vector_database: "StepFun Vector Store",
+          rag_matches:
+            retrievalMode === "vector"
+              ? answer.sources.length
+              : ragContext.rows.length,
           regulation_matches: context.rows.length,
         },
         model,

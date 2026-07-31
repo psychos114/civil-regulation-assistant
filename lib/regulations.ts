@@ -135,6 +135,28 @@ async function initializeDatabase(): Promise<void> {
     db.prepare(
       "CREATE INDEX IF NOT EXISTS idx_rag_chunks_title ON rag_chunks(title)",
     ),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS rag_vector_store (
+        id INTEGER PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'stepfun',
+        vector_store_id TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'creating',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_error TEXT
+      )
+    `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS rag_vector_documents (
+        doc_id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        file_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        updated_at TEXT NOT NULL,
+        last_error TEXT
+      )
+    `),
   ]);
 
   const countResult = await db

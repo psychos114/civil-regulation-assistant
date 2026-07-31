@@ -4,6 +4,7 @@ import {
   internalError,
   successResponse,
 } from "@/lib/regulations";
+import { vectorStoreStatusData } from "@/lib/vector-store";
 
 type RagChunkRow = {
   chunk_id: string;
@@ -26,6 +27,14 @@ export type RagSourceDetail = {
   documentType: string;
   reportYear: string;
   page: number | null;
+  url: string;
+};
+
+export type RagDocumentCatalogItem = {
+  docId: string;
+  title: string;
+  documentType: string;
+  reportYear: string;
   url: string;
 };
 
@@ -186,28 +195,96 @@ export async function retrieveRagContext(
   };
 }
 
+export async function ragDocumentCatalog(): Promise<RagDocumentCatalogItem[]> {
+  const result = await database()
+    .prepare(`
+      SELECT
+        doc_id, MAX(title) AS title, MAX(document_type) AS document_type,
+        MAX(report_year) AS report_year, MAX(source_url) AS source_url
+      FROM rag_chunks
+      GROUP BY doc_id
+      ORDER BY report_year DESC, title ASC
+    `)
+    .all<{
+      doc_id: string;
+      title: string;
+      document_type: string;
+      report_year: string;
+      source_url: string;
+    }>();
+  return result.results.map((row) => ({
+    docId: row.doc_id,
+    title: row.title,
+    documentType: row.document_type,
+    reportYear: row.report_year,
+    url: row.source_url,
+  }));
+}
+
+function normalizeSource(value: string): string {
+  return value.replace(/[《》\s·•]/g, "").toLowerCase();
+}
+
+export async function resolveRagSourceDetails(
+  sources: string[],
+  catalog: RagDocumentCatalogItem[],
+): Promise<RagSourceDetail[]> {
+  const details: RagSourceDetail[] = [];
+  const seen = new Set<string>();
+
+  for (const source of sources.slice(0, 8)) {
+    const normalized = normalizeSource(source);
+    const document = catalog.find((item) =>
+      normalized.includes(normalizeSource(item.title)),
+    );
+    if (!document) continue;
+
+    const pageMatch = source.match(/第\s*(\d+)\s*页/);
+    const page = pageMatch ? Number(pageMatch[1]) : null;
+    const key = `${document.docId}:${page ?? "web"}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    details.push({
+      label: `《${document.title}》${page ? ` · 第${page}页` : ""}`,
+      title: document.title,
+      documentType: document.documentType,
+      reportYear: document.reportYear,
+      page,
+      url: document.url,
+    });
+  }
+  return details;
+}
+
 export async function ragStatus(): Promise<Response> {
   try {
     await ensureDatabase();
-    const result = await database()
-      .prepare(`
-        SELECT
-          COUNT(*) AS chunk_count,
-          COUNT(DISTINCT doc_id) AS document_count,
-          MAX(company) AS company
-        FROM rag_chunks
-      `)
-      .first<{
-        chunk_count: number;
-        document_count: number;
-        company: string | null;
-      }>();
+    const [result, vectorDatabase] = await Promise.all([
+      database()
+        .prepare(`
+          SELECT
+            COUNT(*) AS chunk_count,
+            COUNT(DISTINCT doc_id) AS document_count,
+            MAX(company) AS company
+          FROM rag_chunks
+        `)
+        .first<{
+          chunk_count: number;
+          document_count: number;
+          company: string | null;
+        }>(),
+      vectorStoreStatusData(),
+    ]);
 
     return successResponse({
-      ready: Number(result?.chunk_count ?? 0) > 0,
+      ready:
+        Number(result?.chunk_count ?? 0) > 0 && vectorDatabase.ready,
       chunk_count: Number(result?.chunk_count ?? 0),
       document_count: Number(result?.document_count ?? 0),
       company: result?.company ?? null,
+      retrieval_mode: vectorDatabase.ready ? "vector" : "keyword_fallback",
+      vector_database: vectorDatabase,
     });
   } catch (error) {
     return internalError(error);

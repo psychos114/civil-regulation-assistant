@@ -21,20 +21,27 @@
 - `STEPFUN_API_KEY`：API 密钥（机密）
 - `STEPFUN_BASE_URL`：默认为 `https://api.stepfun.com/step_plan/v1`
 - `STEPFUN_MODEL`：默认为 `step-3.7-flash`
+- `STEPFUN_VECTOR_BASE_URL`：向量知识库接口，默认为 `https://api.stepfun.com/v1`
 
-公开站点按访问者每小时最多 20 次提问进行限流。回答会同时检索：
+公开站点按访问者每小时最多 20 次提问进行限流。企业资料使用 StepFun Vector Store 建立真正的语义向量索引，回答会同时检索：
 
 - 云端法规摘要；
-- 中国建筑股份有限公司公开的年度报告、ESG 报告、季度报告、内部控制报告和官网业务资料。
+- StepFun Vector Store 中的中国建筑股份有限公司公开年度报告、ESG 报告、季度报告、内部控制报告和官网业务资料。
 
-企业资料会保留文档名称、PDF 页码和官方来源网址。当前数据集包含 7 份文档、715 个文本块。回答不能代替官方法规全文和具备资质的专业人员审核。
+企业资料会保留文档名称、PDF 页码和官方来源网址。D1 保存原文与来源元数据，StepFun Vector Store 保存并检索向量。当前数据集包含 7 份文档、715 个文本块。向量服务未就绪时会临时使用关键词检索，回答不能代替官方法规全文和具备资质的专业人员审核。
+
+向量数据库状态接口：
+
+- `GET /api/rag/vector-store`
+- `POST /api/rag/vector-store`：幂等地创建向量库，并逐份上传或检查文档
 
 ## 更新 RAG 数据
 
 1. 将本地生成的 `chunks.jsonl` 放入 `rag_import/`。
 2. 修改 `db/schema.ts` 后运行 `npm run db:generate`。
 3. 运行 `npm run rag:seed`，把经过校验的文本块写入最新的 `rag_chunks` 迁移。
-4. 运行 `npm test` 验证迁移、服务端检索和网页来源展示。
+4. 部署后重复调用 `POST /api/rag/vector-store`，直到状态变为 `ready`。该操作会将 D1 中的文档按资料和页码整理后上传到 StepFun Vector Store。
+5. 运行 `npm test` 验证迁移、向量检索配置和网页来源展示。
 
 `rag_import/` 不会提交到 Git；生产部署使用生成后的 D1 迁移。不要把 `.env`、API 密钥或虚拟环境上传到仓库。
 

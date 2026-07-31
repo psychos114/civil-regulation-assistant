@@ -48,3 +48,23 @@ export const ragChunks = sqliteTable(
     index("idx_rag_chunks_title").on(table.title),
   ],
 );
+
+export const ragVectorStore = sqliteTable("rag_vector_store", {
+  id: integer("id").primaryKey(),
+  provider: text("provider").notNull().default("stepfun"),
+  vectorStoreId: text("vector_store_id").notNull().default(""),
+  status: text("status").notNull().default("creating"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  lastError: text("last_error"),
+});
+
+export const ragVectorDocuments = sqliteTable("rag_vector_documents", {
+  docId: text("doc_id").primaryKey(),
+  title: text("title").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  fileId: text("file_id"),
+  status: text("status").notNull().default("pending"),
+  updatedAt: text("updated_at").notNull(),
+  lastError: text("last_error"),
+});
