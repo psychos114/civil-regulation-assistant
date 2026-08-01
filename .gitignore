@@ -41,6 +41,8 @@ next-env.d.ts
 /dist/
 /frontend/.vite/
 /.wrangler/
+/legacy-sites/dist/
+/legacy-sites/.wrangler/
 /outputs/
 /work/
 
