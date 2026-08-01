@@ -1,0 +1,33 @@
+name: FastAPI backend tests
+
+on:
+  push:
+    branches:
+      - fastapi-separated
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/fastapi-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Compile Python code
+        run: python -m compileall -q backend/app backend/init_db.py backend/run.py
+      - name: Run API tests
+        working-directory: backend
+        run: python -m pytest -q

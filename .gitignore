@@ -42,5 +42,15 @@ next-env.d.ts
 /outputs/
 /work/
 
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.pytest_cache/
+/backend/.venv/
+/backend/.env
+/backend/regulations.db
+/backend/*.db-wal
+/backend/*.db-shm
+
 # Local source documents used to generate the database migration.
 /rag_import/
