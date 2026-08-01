@@ -1,0 +1,35 @@
+name: Initialize vector database
+
+on:
+  push:
+    branches:
+      - cloud-version
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Build and verify StepFun Vector Store
+        shell: bash
+        run: |
+          endpoint="https://civil-regulation-assistant-11462.mexvafdfvhuhb.chatgpt.site/api/rag/vector-store"
+          for attempt in {1..20}; do
+            response="$(curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header 'Content-Type: application/json' \
+              --data '{}' \
+              "$endpoint")"
+            echo "$response"
+            if grep -q '"ready":true' <<<"$response"; then
+              echo "StepFun Vector Store is ready."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Vector Store did not become ready before the timeout."
+          exit 1
