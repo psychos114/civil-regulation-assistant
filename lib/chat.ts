@@ -147,51 +147,25 @@ async function regulationContext(): Promise<{
   };
 }
 
-function modelResponseSchema() {
-  return {
-    type: "json_schema",
-    json_schema: {
-      name: "civil_regulation_answer",
-      strict: true,
-      schema: {
-        type: "object",
-        properties: {
-          plainAnswer: {
-            type: "string",
-            description: "面向非专业用户的清晰中文回答",
-          },
-          sourceAnswer: {
-            type: "string",
-            description: "基于检索资料的依据说明，不得虚构条款号、页码或数据",
-          },
-          sources: {
-            type: "array",
-            items: { type: "string" },
-            description: "实际使用的资料标签，必须与参考资料中的名称一致",
-          },
-        },
-        required: ["plainAnswer", "sourceAnswer", "sources"],
-        additionalProperties: false,
-      },
-    },
-  };
+function modelResponseFormat() {
+  return { type: "json_object" };
 }
 
-function parseModelAnswer(content: string, knownSources: Set<string>): ModelAnswer {
-  const cleaned = content
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "");
-  const value = JSON.parse(cleaned) as Partial<ModelAnswer>;
+function validatedModelAnswer(
+  value: unknown,
+  knownSources: Set<string>,
+): ModelAnswer | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const answer = value as Partial<ModelAnswer>;
   if (
-    typeof value.plainAnswer !== "string" ||
-    typeof value.sourceAnswer !== "string" ||
-    !Array.isArray(value.sources)
+    typeof answer.plainAnswer !== "string" ||
+    typeof answer.sourceAnswer !== "string" ||
+    !Array.isArray(answer.sources)
   ) {
-    throw new Error("模型返回格式无效");
+    return null;
   }
 
-  const sources = value.sources
+  const sources = answer.sources
     .filter((source): source is string => typeof source === "string")
     .map((source) => source.trim())
     .filter(
@@ -204,9 +178,44 @@ function parseModelAnswer(content: string, knownSources: Set<string>): ModelAnsw
     .slice(0, 8);
 
   return {
-    plainAnswer: value.plainAnswer.trim(),
-    sourceAnswer: value.sourceAnswer.trim(),
+    plainAnswer: answer.plainAnswer.trim(),
+    sourceAnswer: answer.sourceAnswer.trim(),
     sources,
+  };
+}
+
+function parseModelAnswer(content: string, knownSources: Set<string>): ModelAnswer {
+  const cleaned = content
+    .trim()
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  const candidates = [
+    cleaned,
+    firstBrace >= 0 && lastBrace > firstBrace
+      ? cleaned.slice(firstBrace, lastBrace + 1)
+      : "",
+  ].filter((candidate, index, items) => candidate && items.indexOf(candidate) === index);
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = validatedModelAnswer(JSON.parse(candidate), knownSources);
+      if (parsed) return parsed;
+    } catch {
+      // Some upstream routes occasionally add prose around JSON. The second
+      // candidate extracts the outer object; plain-text fallback below keeps
+      // the user-facing answer available if both forms are invalid.
+    }
+  }
+
+  return {
+    plainAnswer: cleaned || "模型本次没有返回可显示的正文，请重新提问。",
+    sourceAnswer:
+      "本次回答已使用检索到的知识库资料；请结合下方官方来源核验具体数据、页码和适用范围。",
+    sources: [],
   };
 }
 
@@ -307,7 +316,8 @@ export async function chatWithModel(request: Request): Promise<Response> {
 6. 涉及具体数字时，sourceAnswer 必须说明文档名称和页码；涉及网页资料时说明官网来源。
 7. 对涉及人身安全、结构安全、消防、法律责任的事项，提醒用户由具备资质的专业人员复核，并以主管部门或标准发布机构的正式文本为准。
 8. plainAnswer 使用易懂、可执行的语言；sourceAnswer 说明依据和核验边界。
-9. 不输出思考过程，只输出指定 JSON 结构。
+9. 不输出思考过程、解释文字或 Markdown 代码块，只输出一个可解析的 JSON 对象，字段必须严格使用下面的名称：
+{"plainAnswer":"面向用户的中文回答","sourceAnswer":"依据和核验边界","sources":["实际使用的资料名称或页码标签"]}
 
 问题相关企业资料：
 ${enterpriseContext}
@@ -327,10 +337,9 @@ ${context.text}`;
       ...history,
       { role: "user", content: question },
     ],
-    response_format: modelResponseSchema(),
-    reasoning_effort: "low",
+    response_format: modelResponseFormat(),
     temperature: 0.2,
-    max_tokens: 1200,
+    max_tokens: 1600,
     stream: false,
   };
 

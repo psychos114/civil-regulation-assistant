@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/initialize-vector-store.yml
       - lib/vector-store.ts
+      - lib/chat.ts
       - drizzle/**
 
 permissions:
@@ -31,7 +32,25 @@ jobs:
             echo "$response"
             if grep -q '"ready":true' <<<"$response"; then
               echo "Pinecone vector database is ready."
-              exit 0
+              status_response="$(curl --silent --show-error \
+                "$endpoint")"
+              if ! grep -q '"ready":true' <<<"$status_response"; then
+                echo "Vector status verification failed."
+                exit 1
+              fi
+
+              chat_response="$(curl --silent --show-error \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data '{"question":"中国建筑的主要业务有哪些？","history":[]}' \
+                "https://civil-regulation-assistant-11462.mexvafdfvhuhb.chatgpt.site/api/chat")"
+              if grep -q '"success":true' <<<"$chat_response" && \
+                 grep -q '"mode":"vector"' <<<"$chat_response"; then
+                echo "Pinecone retrieval and model answer verification passed."
+                exit 0
+              fi
+              echo "Chat verification failed."
+              exit 1
             fi
             sleep 5
           done
