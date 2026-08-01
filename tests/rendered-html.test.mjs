@@ -56,7 +56,7 @@ test("build includes D1 configuration and migrations", async () => {
   assert.match(vectorMigration, /CREATE TABLE `rag_vector_documents`/);
 });
 
-test("server bundle keeps the StepFun key on the server", async () => {
+test("server bundle keeps model and Pinecone keys on the server", async () => {
   const serverBundle = await readFile(
     new URL("dist/server/index.js", root),
     "utf8",
@@ -68,10 +68,15 @@ test("server bundle keeps the StepFun key on the server", async () => {
   assert.match(serverBundle, /sourceDetails/);
   assert.match(serverBundle, /api\/rag\/status/);
   assert.match(serverBundle, /api\/rag\/vector-store/);
-  assert.match(serverBundle, /StepFun Vector Store/);
-  assert.match(serverBundle, /\/vector_stores/);
-  assert.match(serverBundle, /retrieval-text/);
-  assert.match(serverBundle, /civil_company_knowledge/);
+  assert.match(serverBundle, /PINECONE_API_KEY/);
+  assert.match(serverBundle, /Pinecone/);
+  assert.match(serverBundle, /multilingual-e5-large/);
+  assert.match(serverBundle, /indexes\/create-for-model/);
+  assert.match(serverBundle, /records\/namespaces/);
+  assert.match(serverBundle, /application\/x-ndjson/);
+  assert.match(serverBundle, /chunk_text/);
+  assert.match(serverBundle, /X-Pinecone-Api-Version/);
+  assert.match(serverBundle, /Api-Key/);
 });
 
 test("RAG migration contains the company knowledge base", async () => {

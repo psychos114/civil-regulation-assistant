@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Build and verify StepFun Vector Store
+      - name: Build and verify Pinecone vector database
         shell: bash
         run: |
           endpoint="https://civil-regulation-assistant-11462.mexvafdfvhuhb.chatgpt.site/api/rag/vector-store"
@@ -23,7 +23,7 @@ jobs:
               "$endpoint")"
             echo "$response"
             if grep -q '"ready":true' <<<"$response"; then
-              echo "StepFun Vector Store is ready."
+              echo "Pinecone vector database is ready."
               exit 0
             fi
             sleep 5
