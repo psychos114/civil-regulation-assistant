@@ -424,6 +424,17 @@ export async function initializeVectorStoreStep(): Promise<Response> {
     if (pending?.status === "pending") {
       try {
         await uploadDocument(pending);
+        const uploaded = await runtime()
+          .DB.prepare(`
+            SELECT doc_id, title, source_url, file_id, status, updated_at, last_error
+            FROM rag_vector_documents
+            WHERE doc_id = ?
+          `)
+          .bind(pending.doc_id)
+          .first<VectorDocumentRow>();
+        if (uploaded) {
+          await attachDocument(store.vector_store_id, uploaded);
+        }
       } catch (error) {
         await runtime()
           .DB.prepare(`

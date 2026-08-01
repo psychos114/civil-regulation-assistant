@@ -1297,8 +1297,36 @@ async function checkForUpdates() {
             }
         }
 
+        // === 向量数据库自动初始化 ===
+        // 初始化接口是幂等的：数据库就绪后会立即返回，不会重复创建。
+        async function ensureVectorDatabase() {
+            for (let attempt = 0; attempt < 30; attempt += 1) {
+                try {
+                    const response = await fetch(`${API_BASE}/rag/vector-store`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: '{}'
+                    });
+                    const result = await response.json();
+                    if (result?.data?.ready) {
+                        console.info('StepFun Vector Store 已就绪');
+                        return;
+                    }
+                    if (!response.ok && response.status !== 202) {
+                        console.warn('向量数据库初始化暂停：', result?.message || response.status);
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('向量数据库初始化请求暂时失败：', error);
+                    return;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+        }
+
         // === 启动 ===
         init();
+        ensureVectorDatabase();
     </script>
 </body>
 </html>
