@@ -1,4 +1,4 @@
-name: FastAPI backend tests
+name: FastAPI and frontend tests
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -31,3 +31,26 @@ jobs:
       - name: Run API tests
         working-directory: backend
         run: python -m pytest -q
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+      - name: Run frontend packaging tests
+        working-directory: frontend
+        run: pnpm run test:sites

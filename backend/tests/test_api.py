@@ -66,9 +66,10 @@ def test_rag_status_and_separated_frontend(client: TestClient) -> None:
 
     root = Path(__file__).resolve().parents[2]
     html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
-    config = (root / "frontend" / "config.js").read_text(encoding="utf-8")
+    app_source = (root / "frontend" / "src" / "App.jsx").read_text(encoding="utf-8")
+    config = (root / "frontend" / "public" / "config.js").read_text(encoding="utf-8")
     assert '<script src="./config.js"></script>' in html
     assert "window.BACKEND_URL" in config
-    assert "`${configuredBackend || localBackend}/api`" in html
-    assert "STEPFUN_API_KEY" not in html
-    assert "PINECONE_API_KEY" not in html
+    assert "`${configuredBackend || localBackend}/api`" in app_source
+    assert "STEPFUN_API_KEY" not in html + app_source
+    assert "PINECONE_API_KEY" not in html + app_source
