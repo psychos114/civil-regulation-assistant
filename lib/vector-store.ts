@@ -397,10 +397,9 @@ export async function initializeVectorStoreStep(): Promise<Response> {
 
     await syncDocumentRows();
     let store = await getStoreRow();
-    if (
-      !store ||
-      (store.status === "failed" && !store.vector_store_id)
-    ) {
+    // A browser or deployment preview can disappear while the remote create
+    // request is in flight. Retry whenever no remote ID was persisted yet.
+    if (!store?.vector_store_id) {
       store = await createVectorStore();
     }
     if (!store.vector_store_id) {
@@ -456,6 +455,12 @@ export async function initializeVectorStoreStep(): Promise<Response> {
 
     store = await refreshStoreReadiness(store);
     const status = await vectorStoreStatusData();
+    console.info("Vector Store initialization progress", {
+      status: status.status,
+      ready: status.ready,
+      documents: status.document_count,
+      attached: status.attached_count,
+    });
     return successResponse(
       status,
       status.ready ? "向量数据库已经就绪" : "向量数据库正在建立索引",
