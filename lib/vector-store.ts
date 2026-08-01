@@ -467,11 +467,13 @@ export async function initializeVectorStoreStep(): Promise<Response> {
       status.ready ? 200 : 202,
     );
   } catch (error) {
-    console.error("Vector Store initialization failed", error);
-    return errorResponse(
+    const message =
       error instanceof Error
         ? error.message
-        : "向量数据库初始化失败，请稍后重试",
+        : "向量数据库初始化失败，请稍后重试";
+    console.error(`Vector Store initialization failed: ${message}`);
+    return errorResponse(
+      message,
       502,
       "VECTOR_STORE_INITIALIZATION_FAILED",
     );
