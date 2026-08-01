@@ -77,6 +77,51 @@ async function apiRequest(path, options = {}) {
   return result.data;
 }
 
+async function streamChatRequest(payload, onEvent) {
+  const response = await fetch(`${API_BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, stream: true }),
+  });
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result?.error?.message || result?.message || `请求失败（${response.status}）`);
+  }
+
+  // Older or separately deployed backends can still return the original JSON
+  // response. Treat it as one completed event so the UI remains compatible.
+  if (!contentType.includes("application/x-ndjson")) {
+    const result = await response.json();
+    onEvent({ type: "done", data: result.data || result });
+    return;
+  }
+
+  if (!response.body) throw new Error("浏览器未收到可读取的流式响应");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split(/\r?\n/);
+    buffer = done ? "" : (lines.pop() || "");
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const event = JSON.parse(line);
+      if (event.type === "error") {
+        throw new Error(event.message || "大模型流式连接中断");
+      }
+      onEvent(event);
+    }
+
+    if (done) break;
+  }
+}
+
 function Sidebar({ active, onChange, onUtility }) {
   return (
     <aside className="sidebar">
@@ -169,24 +214,28 @@ function SourcePanel({ sources }) {
 }
 
 function AnswerContent({ answer }) {
+  const hasSections = Array.isArray(answer.sections) && answer.sections.length > 0;
   return (
     <>
-      <p className="answer-intro">{answer.plainAnswer}</p>
-      {Array.isArray(answer.sections) && answer.sections.length > 0 ? (
-        <div className="answer-sections">
-          {answer.sections.map((section, index) => (
-            <section className="answer-section" key={section.title}>
-              <span className="section-number">{index + 1}</span>
-              <div>
-                <h3>{section.title}</h3>
-                <p>{section.text}</p>
-              </div>
-            </section>
-          ))}
-        </div>
+      {hasSections ? (
+        <>
+          <p className="answer-intro">{answer.plainAnswer}</p>
+          <div className="answer-sections">
+            {answer.sections.map((section, index) => (
+              <section className="answer-section" key={section.title}>
+                <span className="section-number">{index + 1}</span>
+                <div>
+                  <h3>{section.title}</h3>
+                  <p>{section.text}</p>
+                </div>
+              </section>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="answer-plain">
           {(answer.plainAnswer || "").split("\n").filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}
+          {answer.streaming && <span className="streaming-cursor" aria-label="正在生成" />}
         </div>
       )}
       <div className="answer-caveat">
@@ -213,16 +262,63 @@ function ChatWorkspace({ onSourcesChange }) {
     setQuestion("");
     setNotice("");
     setLoading(true);
-    setAnswer((current) => ({ ...current, question: text, plainAnswer: "正在检索规范与企业公开资料……", sections: [], sourceAnswer: "请稍候。" }));
+    setAnswer((current) => ({
+      ...current,
+      question: text,
+      plainAnswer: "正在检索规范与企业公开资料……",
+      sections: [],
+      sourceAnswer: "请稍候。",
+      streaming: true,
+    }));
     try {
-      const data = await apiRequest("/chat", {
-        method: "POST",
-        body: JSON.stringify({ question: text, history }),
+      let generatedText = "";
+      let completedAnswer = null;
+
+      await streamChatRequest({ question: text, history }, (event) => {
+        if (event.type === "meta") {
+          const sourceDetails = event.sourceDetails || [];
+          onSourcesChange(sourceDetails);
+          setAnswer((current) => ({
+            ...current,
+            sourceDetails,
+            model: event.model,
+            retrieval: event.retrieval,
+            sourceAnswer: "已完成知识库检索，大模型正在生成回答……",
+          }));
+          return;
+        }
+
+        if (event.type === "delta") {
+          generatedText += event.delta || "";
+          setAnswer((current) => ({
+            ...current,
+            plainAnswer: generatedText,
+            sourceAnswer: "回答生成中，请稍候……",
+            streaming: true,
+          }));
+          return;
+        }
+
+        if (event.type === "done") {
+          completedAnswer = event.data;
+          const next = {
+            ...event.data,
+            question: text,
+            sections: [],
+            streaming: false,
+          };
+          setAnswer(next);
+          onSourcesChange(next.sourceDetails || []);
+        }
       });
-      const next = { ...data, question: text, sections: [] };
-      setAnswer(next);
-      onSourcesChange(next.sourceDetails || []);
-      setHistory((items) => [...items, { role: "user", content: text }, { role: "assistant", content: data.plainAnswer }].slice(-8));
+
+      const finalAnswer = completedAnswer?.plainAnswer || generatedText;
+      if (!finalAnswer) throw new Error("大模型没有返回可显示的回答");
+      setHistory((items) => [
+        ...items,
+        { role: "user", content: text },
+        { role: "assistant", content: finalAnswer },
+      ].slice(-8));
     } catch (error) {
       setAnswer({
         question: text,
@@ -230,6 +326,7 @@ function ChatWorkspace({ onSourcesChange }) {
         sections: [],
         sourceAnswer: "请确认后端服务、大模型密钥与网络连接均正常，然后重新提问。紧急或高风险工程问题请咨询具备资质的专业人员。",
         sourceDetails: sampleSources,
+        streaming: false,
       });
       setNotice("请求没有完成，已保留可核验的知识来源。" );
     } finally {

@@ -9,6 +9,7 @@ import {
   ragDocumentCatalog,
   resolveRagSourceDetails,
   retrieveRagContext,
+  type RagSourceDetail,
 } from "@/lib/rag";
 import { searchVectorStore } from "@/lib/vector-store";
 
@@ -40,6 +41,15 @@ type StepFunResponse = {
   }>;
 };
 
+type StepFunStreamChunk = {
+  choices?: Array<{
+    delta?: {
+      content?: string;
+    };
+    finish_reason?: string | null;
+  }>;
+};
+
 type ChatEnvironment = {
   DB?: D1Database;
   STEPFUN_API_KEY?: string;
@@ -53,6 +63,13 @@ const MAX_HISTORY_MESSAGE_LENGTH = 2000;
 const MAX_REQUESTS_PER_HOUR = 20;
 const DEFAULT_BASE_URL = "https://api.stepfun.com/step_plan/v1";
 const DEFAULT_MODEL = "step-3.7-flash";
+
+const streamHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Cache-Control": "no-cache, no-transform",
+  "Content-Type": "application/x-ndjson; charset=utf-8",
+  "X-Accel-Buffering": "no",
+};
 
 function bindings(): Required<Pick<ChatEnvironment, "DB">> &
   Omit<ChatEnvironment, "DB"> {
@@ -215,6 +232,131 @@ function parseModelAnswer(content: string, knownSources: Set<string>): ModelAnsw
   };
 }
 
+function streamEvent(type: string, payload: Record<string, unknown>): Uint8Array {
+  return new TextEncoder().encode(`${JSON.stringify({ type, ...payload })}\n`);
+}
+
+function streamModelResponse(
+  upstream: Response,
+  metadata: {
+    sourceDetails: RagSourceDetail[];
+    retrievalMode: "vector" | "keyword_fallback";
+    ragMatches: number;
+    regulationMatches: number;
+    model: string;
+  },
+): Response {
+  let upstreamReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let answerText = "";
+      let completed = false;
+
+      const finish = () => {
+        if (completed) return;
+        completed = true;
+        if (!answerText.trim()) {
+          controller.enqueue(
+            streamEvent("error", {
+              message: "大模型没有返回可显示的回答，请重新提问。",
+              code: "MODEL_EMPTY_RESPONSE",
+            }),
+          );
+        } else {
+          controller.enqueue(
+            streamEvent("done", {
+              data: {
+                plainAnswer: answerText.trim(),
+                sourceAnswer:
+                  "本次回答使用了检索到的知识库资料；请结合右侧官方来源核验具体数据、页码和适用范围。",
+                sources: metadata.sourceDetails.map((item) => item.label),
+                sourceDetails: metadata.sourceDetails,
+                retrieval: {
+                  mode: metadata.retrievalMode,
+                  vector_database: "Pinecone",
+                  rag_matches: metadata.ragMatches,
+                  regulation_matches: metadata.regulationMatches,
+                },
+                model: metadata.model,
+              },
+            }),
+          );
+        }
+        controller.close();
+      };
+
+      controller.enqueue(
+        streamEvent("meta", {
+          sourceDetails: metadata.sourceDetails,
+          retrieval: {
+            mode: metadata.retrievalMode,
+            vector_database: "Pinecone",
+            rag_matches: metadata.ragMatches,
+            regulation_matches: metadata.regulationMatches,
+          },
+          model: metadata.model,
+        }),
+      );
+
+      try {
+        if (!upstream.body) throw new Error("StepFun stream body is missing");
+        upstreamReader = upstream.body.getReader();
+
+        while (!completed) {
+          const { done, value } = await upstreamReader.read();
+          buffer += decoder.decode(value, { stream: !done });
+          const lines = buffer.split(/\r?\n/);
+          buffer = done ? "" : (lines.pop() ?? "");
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const data = trimmed.slice(5).trim();
+            if (!data) continue;
+            if (data === "[DONE]") {
+              finish();
+              break;
+            }
+
+            try {
+              const chunk = JSON.parse(data) as StepFunStreamChunk;
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (delta) {
+                answerText += delta;
+                controller.enqueue(streamEvent("delta", { delta }));
+              }
+            } catch {
+              // Ignore keep-alive lines or malformed upstream chunks while
+              // continuing to consume the remaining model response.
+            }
+          }
+
+          if (done) finish();
+        }
+      } catch (error) {
+        console.error("StepFun stream failed", error);
+        if (!completed) {
+          completed = true;
+          controller.enqueue(
+            streamEvent("error", {
+              message: "大模型流式连接中断，请重新提问。",
+              code: "MODEL_STREAM_ERROR",
+            }),
+          );
+          controller.close();
+        }
+      }
+    },
+    cancel() {
+      void upstreamReader?.cancel();
+    },
+  });
+
+  return new Response(body, { status: 200, headers: streamHeaders });
+}
+
 export async function chatWithModel(request: Request): Promise<Response> {
   await ensureDatabase();
 
@@ -227,6 +369,8 @@ export async function chatWithModel(request: Request): Promise<Response> {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return errorResponse("请求体必须是 JSON 对象", 400, "INVALID_JSON_BODY");
   }
+
+  const wantsStream = (payload as { stream?: unknown }).stream === true;
 
   const question = String((payload as { question?: unknown }).question ?? "").trim();
   if (!question) {
@@ -321,10 +465,24 @@ ${enterpriseContext}
 法规知识库摘要：
 ${context.text}`;
 
-  const prompt = systemPrompt(
-    ragContext.text || "本次问题未检索到相关企业资料。",
-    retrievalMode === "vector",
-  );
+  const enterpriseContext =
+    ragContext.text || "本次问题未检索到相关企业资料。";
+  const prompt = wantsStream
+    ? `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规与企业公开资料查询帮助。
+请遵守以下要求：
+1. 只能依据下方检索资料回答，不得虚构条款号、页码、强制性条文、处罚金额、财务数据或技术参数。
+2. 资料不足时明确说明“现有知识库中没有找到足够依据”，并说明还需要核对什么资料。
+3. 企业年报、ESG 报告和官网页面属于企业公开资料，不得称为法规或规范。
+4. 涉及具体数字时说明文档名称和页码；涉及网页资料时说明官网来源。
+5. 涉及人身安全、结构安全、消防或法律责任时，提醒用户由具备资质的专业人员复核，并以正式文本为准。
+6. 直接输出面向用户的中文正文，不要输出 JSON、代码块、思考过程或字段名称。使用短段落和清晰编号，便于边生成边阅读。
+
+问题相关企业资料：
+${enterpriseContext}
+
+法规知识库摘要：
+${context.text}`
+    : systemPrompt(enterpriseContext, retrievalMode === "vector");
 
   const requestBody: Record<string, unknown> = {
     model,
@@ -335,7 +493,7 @@ ${context.text}`;
     ],
     temperature: 0.2,
     max_tokens: 1600,
-    stream: false,
+    stream: wantsStream,
   };
 
   let upstream: Response;
@@ -380,6 +538,16 @@ ${context.text}`;
       502,
       "MODEL_UPSTREAM_ERROR",
     );
+  }
+
+  if (wantsStream) {
+    return streamModelResponse(upstream, {
+      sourceDetails: ragContext.sourceDetails.slice(0, 5),
+      retrievalMode,
+      ragMatches: ragContext.rows.length,
+      regulationMatches: context.rows.length,
+      model,
+    });
   }
 
   let upstreamData: StepFunResponse;

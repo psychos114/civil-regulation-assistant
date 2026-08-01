@@ -119,7 +119,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .answer-section h3 { margin: 1px 0 7px; color: var(--blue-600); font-size: 15px; }
 .answer-section p { margin: 0; color: #454e5a; font-size: 14px; line-height: 1.8; }
 .answer-plain { padding: 2px 0 12px; color: #38414d; line-height: 1.85; white-space: pre-wrap; }
-.answer-plain p:first-child { display: none; }
+.answer-plain p { margin: 0 0 8px; }
+.streaming-cursor { display: inline-block; width: 2px; height: 1.05em; margin-left: 3px; vertical-align: -2px; background: var(--blue-600); animation: stream-cursor 0.9s steps(1) infinite; }
+@keyframes stream-cursor { 50% { opacity: 0; } }
 .answer-caveat { display: flex; align-items: flex-start; gap: 8px; padding-top: 18px; color: #8a919b; font-size: 12.5px; line-height: 1.6; }
 .answer-caveat i { margin-top: 3px; }
 
