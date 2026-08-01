@@ -2,6 +2,13 @@ name: Initialize vector database
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - cloud-version
+    paths:
+      - .github/workflows/initialize-vector-store.yml
+      - lib/vector-store.ts
+      - drizzle/**
 
 permissions:
   contents: read
