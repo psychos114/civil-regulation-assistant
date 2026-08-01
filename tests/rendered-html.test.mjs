@@ -19,6 +19,7 @@ test("build includes the regulation assistant frontend", async () => {
   assert.match(html, /查看官方来源/);
   assert.match(html, /ensureVectorDatabase/);
   assert.match(html, /rag\/vector-store/);
+  assert.match(html, /keepalive:\s*true/);
   assert.doesNotMatch(html, /STEPFUN_API_KEY/);
   assert.doesNotMatch(html, /所有数据仅存储在本地设备/);
 });

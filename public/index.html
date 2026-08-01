@@ -1305,7 +1305,8 @@ async function checkForUpdates() {
                     const response = await fetch(`${API_BASE}/rag/vector-store`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: '{}'
+                        body: '{}',
+                        keepalive: true
                     });
                     const result = await response.json();
                     if (result?.data?.ready) {
