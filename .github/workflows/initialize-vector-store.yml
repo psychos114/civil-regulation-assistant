@@ -1,9 +1,6 @@
 name: Initialize vector database
 
 on:
-  push:
-    branches:
-      - cloud-version
   workflow_dispatch:
 
 permissions:

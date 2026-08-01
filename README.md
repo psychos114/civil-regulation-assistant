@@ -30,6 +30,8 @@
 
 企业资料会保留文档名称、PDF 页码和官方来源网址。D1 保存原文与来源元数据，StepFun Vector Store 保存并检索向量。当前数据集包含 7 份文档、715 个文本块。向量服务未就绪时会临时使用关键词检索，回答不能代替官方法规全文和具备资质的专业人员审核。
 
+StepFun Vector Store 使用标准 API 账户额度。若状态接口返回 `quota_exceeded`，需要先在 StepFun 控制台开通或补充标准 API 额度，再从 GitHub Actions 手动运行 `Initialize vector database`。额度未恢复前，站点会自动使用关键词检索兜底。
+
 向量数据库状态接口：
 
 - `GET /api/rag/vector-store`
