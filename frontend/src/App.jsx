@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const configuredBackend = (window.BACKEND_URL || "").replace(/\/$/, "");
-const localBackend = `${window.location.protocol}//${window.location.hostname}:5000`;
+const standaloneFrontendPorts = new Set(["4173", "5173", "8000"]);
+const localBackend = standaloneFrontendPorts.has(window.location.port)
+  ? `${window.location.protocol}//${window.location.hostname}:5000`
+  : window.location.origin;
 const API_BASE = `${configuredBackend || localBackend}/api`;
 
 const sampleSources = [

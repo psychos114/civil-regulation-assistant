@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import database_counts, initialize_database
 from .responses import APIError, error_payload, success
 from .routers import chat, rag, regulations
+
+
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist" / "client"
+FRONTEND_INDEX = FRONTEND_DIST / "index.html"
 
 
 @asynccontextmanager
@@ -54,8 +60,10 @@ async def handle_validation_error(
     )
 
 
-@app.get("/")
-def root() -> dict:
+@app.get("/", include_in_schema=False)
+def root():
+    if FRONTEND_INDEX.is_file():
+        return FileResponse(FRONTEND_INDEX)
     return success(
         {
             "service": settings.app_name,
@@ -74,3 +82,6 @@ def health() -> dict:
 app.include_router(regulations.router)
 app.include_router(rag.router)
 app.include_router(chat.router)
+
+if FRONTEND_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

@@ -12,6 +12,11 @@ def test_health_and_seed_counts(client: TestClient) -> None:
     assert body["data"]["rag_documents"] == 7
     assert body["data"]["rag_chunks"] == 715
 
+    home = client.get("/")
+    assert home.status_code == 200
+    assert "text/html" in home.headers["content-type"]
+    assert "土木工程智能规范助手" in home.text
+
 
 def test_regulation_list_search_and_detail(client: TestClient) -> None:
     response = client.get("/api/regulations/list?page=1&page_size=5&q=建筑")
@@ -71,5 +76,6 @@ def test_rag_status_and_separated_frontend(client: TestClient) -> None:
     assert '<script src="./config.js"></script>' in html
     assert "window.BACKEND_URL" in config
     assert "`${configuredBackend || localBackend}/api`" in app_source
+    assert "window.location.origin" in app_source
     assert "STEPFUN_API_KEY" not in html + app_source
     assert "PINECONE_API_KEY" not in html + app_source
