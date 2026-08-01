@@ -64,7 +64,6 @@ test("server bundle keeps model and Pinecone keys on the server", async () => {
   assert.match(serverBundle, /STEPFUN_API_KEY/);
   assert.match(serverBundle, /step-3\.7-flash/);
   assert.match(serverBundle, /chat\/completions/);
-  assert.match(serverBundle, /json_object/);
   assert.match(serverBundle, /本次回答已使用检索到的知识库资料/);
   assert.doesNotMatch(serverBundle, /civil_regulation_answer/);
   assert.match(serverBundle, /rag_chunks/);

@@ -147,10 +147,6 @@ async function regulationContext(): Promise<{
   };
 }
 
-function modelResponseFormat() {
-  return { type: "json_object" };
-}
-
 function validatedModelAnswer(
   value: unknown,
   knownSources: Set<string>,
@@ -337,7 +333,6 @@ ${context.text}`;
       ...history,
       { role: "user", content: question },
     ],
-    response_format: modelResponseFormat(),
     temperature: 0.2,
     max_tokens: 1600,
     stream: false,
