@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: civil-regulation-assistant-11462
+    runtime: python
+    plan: free
+    region: singapore
+    branch: fastapi-separated
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: STEPFUN_API_KEY
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: STEPFUN_BASE_URL
+        value: https://api.stepfun.com/step_plan/v1
+      - key: STEPFUN_MODEL
+        value: step-3.7-flash
+      - key: PINECONE_INDEX_NAME
+        value: civil-regulation-assistant
+      - key: PINECONE_NAMESPACE
+        value: cscec-public
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: CHAT_REQUESTS_PER_HOUR
+        value: "20"

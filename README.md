@@ -18,18 +18,9 @@ legacy-sites/      早期 Sites 版本，仅作备份
 3. 浏览器访问 <http://127.0.0.1:8000>。
 4. 后端接口文档位于 <http://127.0.0.1:5000/docs>。
 
-## 分享给其他人（不是 chatgpt.site）
+## 云端分享（电脑关机后仍可访问）
 
-1. 双击 `start_internet_access.bat`。
-2. 等待脚本启动 FastAPI 和 Cloudflare 公网隧道。
-3. 成功后会显示并自动复制一个类似下面的网址：
-
-   `https://随机名称.trycloudflare.com`
-
-4. 把这个网址发给其他人即可。
-5. 分享期间请保持“FastAPI”和“Public Tunnel”两个黑色窗口打开。
-
-该网址是临时地址：关闭 Public Tunnel 窗口后失效，下次启动会生成新地址。生成后的地址也会保存在根目录的 `PUBLIC_URL.txt` 中，可双击 `SHOW_PUBLIC_URL.cmd` 再次查看。
+项目已经提供 `render.yaml`，可部署为 `https://...onrender.com` 云端网址，不使用 `chatgpt.site`，也不依赖本地电脑持续开机。完整步骤见 [DEPLOY_RENDER.md](DEPLOY_RENDER.md)。
 
 如需大模型和 Pinecone，请在 `backend/.env` 中填写：
 
