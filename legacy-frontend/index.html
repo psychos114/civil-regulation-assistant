@@ -787,7 +787,7 @@
         // 本地前端运行在 8000，后端运行在 5000。
         // 线上部署时只需要在 config.js 中填写后端 HTTPS 地址。
         const configuredBackend = String(window.BACKEND_URL || '').replace(/\/+$/, '');
-        const localBackend = `http://${window.location.hostname || '127.0.0.1'}:5000`;
+        const localBackend = `http://${window.location.hostname || 'localhost'}:5000`;
         const API_BASE = `${configuredBackend || localBackend}/api`;
 
 async function checkForUpdates() {
@@ -991,7 +991,7 @@ async function checkForUpdates() {
                         <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
                         <div class="font-medium">规范列表加载失败</div>
                         <div class="text-sm mt-1">${escapeHtml(error.message)}</div>
-                        <div class="text-xs text-gray-500 mt-2">请确认后端窗口正在运行 http://127.0.0.1:5000</div>
+                        <div class="text-xs text-gray-500 mt-2">请确认后端窗口正在运行 http://localhost:5000</div>
                     </div>
                 `;
             }
@@ -1311,7 +1311,7 @@ async function checkForUpdates() {
                     });
                     const result = await response.json();
                     if (result?.data?.ready) {
-                        console.info('Pinecone 向量数据库已就绪');
+                        console.info('FAISS 向量数据库已就绪');
                         return;
                     }
                     if (!response.ok && response.status !== 202) {

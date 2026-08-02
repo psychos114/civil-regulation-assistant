@@ -163,7 +163,7 @@ def initialize_database() -> None:
 
             CREATE TABLE IF NOT EXISTS rag_vector_store (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                provider TEXT NOT NULL DEFAULT 'pinecone',
+                provider TEXT NOT NULL DEFAULT 'faiss',
                 vector_store_id TEXT NOT NULL DEFAULT '',
                 status TEXT NOT NULL DEFAULT 'creating',
                 created_at TEXT NOT NULL,

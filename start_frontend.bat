@@ -8,7 +8,7 @@ if not exist "frontend\dist\client\index.html" (
     exit /b 1
 )
 copy /Y "frontend\public\config.js" "frontend\dist\client\config.js" >nul
-echo Frontend: http://127.0.0.1:8000
+echo Frontend: http://localhost:8000
 python -m http.server 8000 --bind 0.0.0.0 --directory "frontend\dist\client"
 
 echo.

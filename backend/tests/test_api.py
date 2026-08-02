@@ -67,7 +67,7 @@ def test_rag_status_and_separated_frontend(client: TestClient) -> None:
     status = client.get("/api/rag/status")
     assert status.status_code == 200
     assert status.json()["data"]["chunk_count"] == 715
-    assert status.json()["data"]["vector_database"]["provider"] == "Pinecone"
+    assert status.json()["data"]["vector_database"]["provider"] == "FAISS"
 
     root = Path(__file__).resolve().parents[2]
     html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
@@ -78,4 +78,18 @@ def test_rag_status_and_separated_frontend(client: TestClient) -> None:
     assert "`${configuredBackend || localBackend}/api`" in app_source
     assert "window.location.origin" in app_source
     assert "STEPFUN_API_KEY" not in html + app_source
-    assert "PINECONE_API_KEY" not in html + app_source
+    assert "Pinecone" not in app_source
+
+
+def test_faiss_index_build_and_search(client: TestClient) -> None:
+    initialized = client.post("/api/rag/vector-store")
+    assert initialized.status_code == 200
+    vector = initialized.json()["data"]
+    assert vector["provider"] == "FAISS"
+    assert vector["ready"] is True
+    assert vector["indexed_count"] == 715
+    assert vector["index_type"] == "IndexFlatIP"
+
+    status = client.get("/api/rag/status")
+    assert status.status_code == 200
+    assert status.json()["data"]["retrieval_mode"] == "vector"

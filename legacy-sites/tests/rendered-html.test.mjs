@@ -6,22 +6,24 @@ const root = new URL("../", import.meta.url);
 
 test("build includes the regulation assistant frontend", async () => {
   const html = await readFile(new URL("dist/client/index.html", root), "utf8");
+  const assetDirectory = new URL("dist/client/assets/", root);
+  const assetNames = await readdir(assetDirectory);
+  const scripts = await Promise.all(
+    assetNames
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => readFile(new URL(name, assetDirectory), "utf8")),
+  );
+  const browserBundle = scripts.join("\n");
+
   assert.match(html, /土木工程智能规范助手/);
-  assert.match(html, /版本 v0\.1/);
-  assert.match(html, /const API_BASE[\s\S]*['"]\/api['"]/);
-  assert.match(html, /regulations\/check-update/);
-  assert.match(html, /regulations\/download/);
-  assert.match(html, /regulations\/list/);
-  assert.match(html, /regulations\/\$\{regulationId\}/);
-  assert.match(html, /\$\{API_BASE\}\/chat/);
-  assert.match(html, /知识库依据与核验边界/);
-  assert.match(html, /sourceDetails/);
-  assert.match(html, /查看官方来源/);
-  assert.match(html, /ensureVectorDatabase/);
-  assert.match(html, /rag\/vector-store/);
-  assert.match(html, /keepalive:\s*true/);
-  assert.doesNotMatch(html, /STEPFUN_API_KEY/);
-  assert.doesNotMatch(html, /所有数据仅存储在本地设备/);
+  assert.match(browserBundle, /regulations\/check-update/);
+  assert.match(browserBundle, /regulations\/download/);
+  assert.match(browserBundle, /regulations\/list/);
+  assert.match(browserBundle, /sourceDetails/);
+  assert.match(browserBundle, /查看原文/);
+  assert.match(browserBundle, /FAISS/);
+  assert.doesNotMatch(html + browserBundle, /STEPFUN_API_KEY/);
+  assert.doesNotMatch(html + browserBundle, /Pinecone/);
 });
 
 test("build includes D1 configuration and migrations", async () => {
@@ -56,7 +58,7 @@ test("build includes D1 configuration and migrations", async () => {
   assert.match(vectorMigration, /CREATE TABLE `rag_vector_documents`/);
 });
 
-test("server bundle keeps model and Pinecone keys on the server", async () => {
+test("server bundle keeps the model key server-side and exposes FAISS compatibility status", async () => {
   const serverBundle = await readFile(
     new URL("dist/server/index.js", root),
     "utf8",
@@ -70,15 +72,12 @@ test("server bundle keeps model and Pinecone keys on the server", async () => {
   assert.match(serverBundle, /sourceDetails/);
   assert.match(serverBundle, /api\/rag\/status/);
   assert.match(serverBundle, /api\/rag\/vector-store/);
-  assert.match(serverBundle, /PINECONE_API_KEY/);
-  assert.match(serverBundle, /Pinecone/);
-  assert.match(serverBundle, /multilingual-e5-large/);
-  assert.match(serverBundle, /indexes\/create-for-model/);
-  assert.match(serverBundle, /records\/namespaces/);
+  assert.match(serverBundle, /FAISS/);
+  assert.match(serverBundle, /FAISS_RUNTIME_UNAVAILABLE/);
+  assert.match(serverBundle, /requires_fastapi_runtime/);
   assert.match(serverBundle, /application\/x-ndjson/);
-  assert.match(serverBundle, /chunk_text/);
-  assert.match(serverBundle, /X-Pinecone-Api-Version/);
-  assert.match(serverBundle, /Api-Key/);
+  assert.doesNotMatch(serverBundle, /PINECONE_API_KEY/);
+  assert.doesNotMatch(serverBundle, /Pinecone/);
 });
 
 test("RAG migration contains the company knowledge base", async () => {

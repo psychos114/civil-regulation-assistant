@@ -11,7 +11,6 @@ import {
   retrieveRagContext,
   type RagSourceDetail,
 } from "@/lib/rag";
-import { searchVectorStore } from "@/lib/vector-store";
 
 type ChatRole = "user" | "assistant";
 
@@ -273,9 +272,9 @@ function streamModelResponse(
                   "本次回答使用了检索到的知识库资料；请结合右侧官方来源核验具体数据、页码和适用范围。",
                 sources: metadata.sourceDetails.map((item) => item.label),
                 sourceDetails: metadata.sourceDetails,
-                retrieval: {
-                  mode: metadata.retrievalMode,
-                  vector_database: "Pinecone",
+                  retrieval: {
+                    mode: metadata.retrievalMode,
+                    vector_database: "FAISS",
                   rag_matches: metadata.ragMatches,
                   regulation_matches: metadata.regulationMatches,
                 },
@@ -290,9 +289,9 @@ function streamModelResponse(
       controller.enqueue(
         streamEvent("meta", {
           sourceDetails: metadata.sourceDetails,
-          retrieval: {
-            mode: metadata.retrievalMode,
-            vector_database: "Pinecone",
+            retrieval: {
+              mode: metadata.retrievalMode,
+              vector_database: "FAISS",
             rag_matches: metadata.ragMatches,
             regulation_matches: metadata.regulationMatches,
           },
@@ -416,19 +415,11 @@ export async function chatWithModel(request: Request): Promise<Response> {
     ragDocumentCatalog(),
   ]);
 
-  let vectorRagContext: Awaited<ReturnType<typeof searchVectorStore>> = null;
-  try {
-    vectorRagContext = await searchVectorStore(question);
-  } catch (error) {
-    console.error("Pinecone search failed; using keyword fallback", error);
-  }
-  const vectorMatches = vectorRagContext?.rows.length ?? 0;
-  const retrievalMode: "vector" | "keyword_fallback" =
-    vectorMatches > 0 ? "vector" : "keyword_fallback";
-  const ragContext =
-    retrievalMode === "vector" && vectorRagContext
-      ? vectorRagContext
-      : keywordRagContext;
+  // The Sites backend runs on Cloudflare Workers and cannot load FAISS's
+  // native Python/C++ runtime. Keep this legacy deployment usable with the
+  // database keyword fallback; the FastAPI backend performs true FAISS search.
+  const retrievalMode = "keyword_fallback" as const;
+  const ragContext = keywordRagContext;
   const knownSources = new Set(
     [
       ...context.rows.flatMap((item) => [
@@ -444,11 +435,11 @@ export async function chatWithModel(request: Request): Promise<Response> {
     ],
   );
 
-  const systemPrompt = (enterpriseContext: string, vectorEnabled: boolean) =>
+  const systemPrompt = (enterpriseContext: string) =>
     `你是“土木工程智能规范助手”，面向施工、监理、设计和项目管理人员提供中文法规与企业公开资料查询帮助。
 
 必须遵守以下规则：
-1. 优先依据${vectorEnabled ? "下方 Pinecone 语义检索返回的企业资料" : "下方“问题相关企业资料”"}和“法规知识库摘要”回答，不能利用未提供的记忆补充事实。
+1. 优先依据下方“问题相关企业资料”和“法规知识库摘要”回答，不能利用未提供的记忆补充事实。
 2. 企业年报、ESG 报告和官网页面属于企业公开资料，不得称为法规或规范。
 3. 不得虚构条款号、页码、强制性条文、处罚金额、财务数据或技术参数。
 4. 资料不足时，明确写“现有知识库中没有找到足够依据”，并说明还需要核对什么资料。
@@ -482,7 +473,7 @@ ${enterpriseContext}
 
 法规知识库摘要：
 ${context.text}`
-    : systemPrompt(enterpriseContext, retrievalMode === "vector");
+    : systemPrompt(enterpriseContext);
 
   const requestBody: Record<string, unknown> = {
     model,
@@ -572,10 +563,10 @@ ${context.text}`
 
   try {
     const answer = parseModelAnswer(content, knownSources);
-    const vectorSourceDetails =
-      retrievalMode === "vector"
-        ? await resolveRagSourceDetails(answer.sources, ragCatalog)
-        : [];
+    const resolvedSourceDetails = await resolveRagSourceDetails(
+      answer.sources,
+      ragCatalog,
+    );
     const citedSourceDetails = ragContext.sourceDetails.filter((detail) =>
       answer.sources.some((source) => {
         const normalizedSource = source.replace(/[\s·•]/g, "");
@@ -594,15 +585,15 @@ ${context.text}`
     return successResponse(
       {
         ...answer,
-        sourceDetails:
-          vectorSourceDetails.length > 0
-            ? vectorSourceDetails
+          sourceDetails:
+            resolvedSourceDetails.length > 0
+              ? resolvedSourceDetails
             : citedSourceDetails.length > 0
               ? citedSourceDetails
               : ragContext.sourceDetails.slice(0, 3),
         retrieval: {
           mode: retrievalMode,
-          vector_database: "Pinecone",
+            vector_database: "FAISS",
           rag_matches: ragContext.rows.length,
           regulation_matches: context.rows.length,
         },

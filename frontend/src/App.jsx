@@ -6,6 +6,9 @@ const localBackend = standaloneFrontendPorts.has(window.location.port)
   ? `${window.location.protocol}//${window.location.hostname}:5000`
   : window.location.origin;
 const API_BASE = `${configuredBackend || localBackend}/api`;
+const BACKEND_DISPLAY = configuredBackend
+  ? `${configuredBackend}/api`
+  : "自动跟随当前网站地址（/api）";
 
 const sampleSources = [
   {
@@ -167,9 +170,9 @@ function Header({ ragStatus, onMenu }) {
       </button>
       <h1>土木工程智能规范助手</h1>
       <div className="topbar-actions">
-        <div className="connection" title={connected ? "Pinecone 向量数据库连接正常" : "当前使用本地关键词检索"}>
+        <div className="connection" title={connected ? "FAISS 本地向量数据库连接正常" : "FAISS 索引尚未建立，当前使用关键词检索"}>
           <Icon name="fa-solid fa-database" />
-          <span>Pinecone {connected ? "已连接" : "待连接"}</span>
+          <span>FAISS {connected ? "已连接" : "待建立索引"}</span>
           <span className={`status-dot ${connected ? "online" : "offline"}`} />
         </div>
         <button className="profile-button" type="button" aria-label="个人中心">
@@ -518,7 +521,7 @@ function UtilityModal({ type, onClose }) {
         <button type="button" className="drawer-close" onClick={onClose} aria-label="关闭"><Icon name="fa-solid fa-xmark" /></button>
         <span className="eyebrow">{isSettings ? "SETTINGS" : "ABOUT"}</span>
         <h2>{isSettings ? "服务设置" : "关于本助手"}</h2>
-        {isSettings ? <><label>当前后端 API 地址</label><div className="readonly-field">{API_BASE}</div><p>如需修改，请编辑前端目录中的 config.js，然后重新启动前端。</p></> : <p>土木工程智能规范助手 v0.1，采用 FastAPI、SQLite、StepFun 与 Pinecone，为工程人员提供法规检索和 RAG 智能问答能力。</p>}
+        {isSettings ? <><label>当前连接方式</label><div className="readonly-field">{BACKEND_DISPLAY}</div><p>在线使用时自动采用当前网站域名，不再显示本机 IP 地址。</p></> : <p>土木工程智能规范助手 v0.1，采用 FastAPI、SQLite、StepFun 与 FAISS，为工程人员提供法规检索和 RAG 智能问答能力。</p>}
       </section>
     </div>
   );

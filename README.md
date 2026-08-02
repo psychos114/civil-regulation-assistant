@@ -9,27 +9,26 @@ legacy-frontend/   改版前的静态前端，仅作备份
 legacy-sites/      早期 Sites 版本，仅作备份
 ```
 
-新版界面采用深蓝工程工作台风格，包含可用的智能问答、规范库、法规更新、知识来源、设置与关于功能。后端使用 FastAPI、SQLite、StepFun 和 Pinecone。
+新版界面采用深蓝工程工作台风格，包含可用的智能问答、规范库、法规更新、知识来源、设置与关于功能。后端使用 FastAPI、SQLite、StepFun 和 FAISS。
 
 ## 最简单的运行方法（Windows）
 
 1. 双击根目录中的 `start_all.bat`。
 2. 等待出现“后端”和“前端”两个黑色窗口。
-3. 浏览器访问 <http://127.0.0.1:8000>。
-4. 后端接口文档位于 <http://127.0.0.1:5000/docs>。
+3. 浏览器访问 <http://localhost:8000>。
+4. 后端接口文档位于 <http://localhost:5000/docs>。
 
 ## 云端分享（电脑关机后仍可访问）
 
 项目已经提供 `render.yaml`，可部署为 `https://...onrender.com` 云端网址，不使用 `chatgpt.site`，也不依赖本地电脑持续开机。完整步骤见 [DEPLOY_RENDER.md](DEPLOY_RENDER.md)。
 
-如需大模型和 Pinecone，请在 `backend/.env` 中填写：
+如需大模型，请在 `backend/.env` 中填写：
 
 ```env
 STEPFUN_API_KEY=你的密钥
-PINECONE_API_KEY=你的密钥
 ```
 
-密钥只能保存在 `backend/.env`，该文件已被 Git 忽略，不会上传到 GitHub。
+FAISS 在本机运行，不需要账号或 API 密钥。执行 `python init_db.py` 时会根据 715 条知识库资料自动生成 `backend/data/faiss.index` 和配套元数据文件；这些生成文件不会上传到 GitHub。密钥只能保存在 `backend/.env`，该文件已被 Git 忽略，不会上传到 GitHub。
 
 ## API
 
@@ -72,6 +71,8 @@ copy .env.example .env
 python init_db.py
 python run.py
 ```
+
+看到“FAISS 索引数量：715”表示真正的 FAISS 向量索引已经建立。资料变化后，再执行一次 `python init_db.py` 即可重建索引。
 
 ## 测试
 

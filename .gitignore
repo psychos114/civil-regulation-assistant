@@ -55,6 +55,10 @@ __pycache__/
 /backend/regulations.db
 /backend/*.db-wal
 /backend/*.db-shm
+/backend/data/faiss.index
+/backend/data/faiss.index.tmp
+/backend/data/faiss_metadata.json
+/backend/data/faiss_metadata.json.tmp
 
 # Local source documents used to generate the database migration.
 /rag_import/

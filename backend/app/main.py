@@ -28,7 +28,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="法规更新、企业资料 RAG、Pinecone 检索与大模型问答服务。",
+    description="法规更新、企业资料 RAG、FAISS 本地向量检索与大模型问答服务。",
     lifespan=lifespan,
 )
 

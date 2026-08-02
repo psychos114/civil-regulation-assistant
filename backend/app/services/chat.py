@@ -12,7 +12,7 @@ from ..config import settings
 from ..database import connect, transaction, utc_now
 from ..responses import APIError
 from ..schemas import ChatMessage
-from . import pinecone, rag
+from . import faiss_store, rag
 
 
 def enforce_rate_limit(client_ip: str) -> None:
@@ -109,7 +109,7 @@ def _system_prompt(
     vector_enabled: bool,
 ) -> str:
     source_name = (
-        "下方 Pinecone 语义检索返回的企业资料"
+        "下方 FAISS 本地向量检索返回的企业资料"
         if vector_enabled
         else "下方“问题相关企业资料”"
     )
@@ -152,7 +152,7 @@ async def answer_question(
     catalog = rag.document_catalog()
     vector_context: dict[str, Any] | None = None
     try:
-        vector_context = await pinecone.search(question)
+        vector_context = await faiss_store.search(question)
     except APIError:
         vector_context = None
 
@@ -260,7 +260,7 @@ async def answer_question(
     )
     answer["retrieval"] = {
         "mode": retrieval_mode,
-        "vector_database": "Pinecone",
+        "vector_database": "FAISS",
         "rag_matches": len(selected_context["rows"]),
         "regulation_matches": len(regulation_rows),
     }

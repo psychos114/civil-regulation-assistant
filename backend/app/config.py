@@ -20,6 +20,11 @@ def _database_path() -> Path:
     return configured.resolve() if configured.is_absolute() else (BASE_DIR / configured).resolve()
 
 
+def _data_path(name: str, default: str) -> Path:
+    configured = Path(_env(name, default))
+    return configured.resolve() if configured.is_absolute() else (BASE_DIR / configured).resolve()
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "土木工程智能规范助手 API"
@@ -35,14 +40,12 @@ class Settings:
         "STEPFUN_BASE_URL", "https://api.stepfun.com/step_plan/v1"
     ).rstrip("/")
     stepfun_model: str = _env("STEPFUN_MODEL", "step-3.7-flash")
-    pinecone_api_key: str = _env("PINECONE_API_KEY")
-    pinecone_index_name: str = _env(
-        "PINECONE_INDEX_NAME", "civil-regulation-assistant"
+    faiss_index_path: Path = _data_path("FAISS_INDEX_PATH", "data/faiss.index")
+    faiss_metadata_path: Path = _data_path(
+        "FAISS_METADATA_PATH", "data/faiss_metadata.json"
     )
-    pinecone_namespace: str = _env("PINECONE_NAMESPACE", "cscec-public")
-    pinecone_control_url: str = _env(
-        "PINECONE_CONTROL_URL", "https://api.pinecone.io"
-    ).rstrip("/")
+    faiss_dimension: int = int(_env("FAISS_DIMENSION", "1024"))
+    faiss_min_score: float = float(_env("FAISS_MIN_SCORE", "0.08"))
     chat_requests_per_hour: int = int(_env("CHAT_REQUESTS_PER_HOUR", "20"))
 
 
